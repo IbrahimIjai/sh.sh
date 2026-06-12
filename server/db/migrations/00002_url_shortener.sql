@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS links (
 	id BIGSERIAL PRIMARY KEY,
 	user_id BIGINT,
@@ -43,3 +45,10 @@ CREATE TABLE IF NOT EXISTS clicks (
 CREATE INDEX IF NOT EXISTS idx_clicks_link_id ON clicks (link_id);
 CREATE INDEX IF NOT EXISTS idx_clicks_created_at ON clicks (created_at);
 CREATE INDEX IF NOT EXISTS idx_clicks_link_id_created_at ON clicks (link_id, created_at);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS clicks;
+DROP TABLE IF EXISTS links;
+-- +goose StatementEnd

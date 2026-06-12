@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS users (
 	id BIGSERIAL PRIMARY KEY,
 	email VARCHAR(255) NOT NULL,
@@ -72,3 +74,13 @@ CREATE TABLE IF NOT EXISTS accounts (
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id_provider ON accounts (user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_provider_provider_account_id
 	ON accounts (provider, provider_account_id);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS accounts;
+DROP TABLE IF EXISTS rate_limits;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS verifications;
+DROP TABLE IF EXISTS users;
+-- +goose StatementEnd
