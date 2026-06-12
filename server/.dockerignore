@@ -1,0 +1,6 @@
+.env
+.limen
+Dockerfile
+bin
+tmp
+*.log
