@@ -3,7 +3,6 @@ package auth
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/ibrahimijai/sh.sh/internal/config"
@@ -12,23 +11,13 @@ import (
 )
 
 type Server struct {
+	limen   *limen.Limen
 	handler http.Handler
-	db      *sql.DB
 }
 
-func New(cfg config.Config) (*Server, error) {
-	if cfg.DatabaseURL == "" {
-		log.Println("auth disabled: DATABASE_URL is not set")
-		return nil, nil
-	}
-
+func New(cfg config.Config, db *sql.DB) (*Server, error) {
 	if cfg.LimenSecret == "" {
 		return nil, fmt.Errorf("auth enabled but LIMEN_SECRET is not set")
-	}
-
-	db, err := openDatabase(cfg.DatabaseURL)
-	if err != nil {
-		return nil, err
 	}
 
 	limenAuth, err := limen.New(&limen.Config{
@@ -40,13 +29,12 @@ func New(cfg config.Config) (*Server, error) {
 		HTTP:     limen.NewDefaultHTTPConfig(limen.WithHTTPCookieSecure(cfg.Env == "production")),
 	})
 	if err != nil {
-		db.Close()
 		return nil, fmt.Errorf("create limen auth: %w", err)
 	}
 
 	return &Server{
+		limen:   limenAuth,
 		handler: limenAuth.Handler(),
-		db:      db,
 	}, nil
 }
 
@@ -55,11 +43,4 @@ func (s *Server) Handler() http.Handler {
 		return nil
 	}
 	return s.handler
-}
-
-func (s *Server) Close() error {
-	if s == nil || s.db == nil {
-		return nil
-	}
-	return s.db.Close()
 }

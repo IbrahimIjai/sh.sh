@@ -35,6 +35,17 @@ type Click struct {
 	CreatedAt time.Time      `json:"created_at"`
 }
 
+type Domain struct {
+	ID                int64        `json:"id"`
+	UserID            int64        `json:"user_id"`
+	Host              string       `json:"host"`
+	IsVerified        bool         `json:"is_verified"`
+	VerificationToken string       `json:"verification_token"`
+	CreatedAt         time.Time    `json:"created_at"`
+	UpdatedAt         time.Time    `json:"updated_at"`
+	DeletedAt         sql.NullTime `json:"deleted_at"`
+}
+
 type Link struct {
 	ID          int64          `json:"id"`
 	UserID      sql.NullInt64  `json:"user_id"`

@@ -13,17 +13,22 @@ type Querier interface {
 	CountClicksByLink(ctx context.Context, linkID int64) (int64, error)
 	CountClicksByLinkSince(ctx context.Context, arg CountClicksByLinkSinceParams) (int64, error)
 	CountLinksByUser(ctx context.Context, userID sql.NullInt64) (int64, error)
+	CreateDomain(ctx context.Context, arg CreateDomainParams) (Domain, error)
 	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
+	GetDomainByHost(ctx context.Context, host string) (Domain, error)
 	GetLinkByID(ctx context.Context, id int64) (Link, error)
 	GetLinkBySlug(ctx context.Context, slug string) (Link, error)
 	IncrementLinkClickCount(ctx context.Context, id int64) error
 	ListClicksByLink(ctx context.Context, arg ListClicksByLinkParams) ([]Click, error)
 	ListDailyClicksByLink(ctx context.Context, arg ListDailyClicksByLinkParams) ([]ListDailyClicksByLinkRow, error)
+	ListDomainsByUser(ctx context.Context, userID int64) ([]Domain, error)
 	ListLinksByUser(ctx context.Context, arg ListLinksByUserParams) ([]Link, error)
 	ListTopCountriesByLink(ctx context.Context, arg ListTopCountriesByLinkParams) ([]ListTopCountriesByLinkRow, error)
 	ListTopReferersByLink(ctx context.Context, arg ListTopReferersByLinkParams) ([]ListTopReferersByLinkRow, error)
+	MarkDomainVerified(ctx context.Context, arg MarkDomainVerifiedParams) (Domain, error)
 	RecordClick(ctx context.Context, arg RecordClickParams) (Click, error)
 	SlugExists(ctx context.Context, slug string) (bool, error)
+	SoftDeleteDomain(ctx context.Context, arg SoftDeleteDomainParams) error
 	SoftDeleteLink(ctx context.Context, id int64) error
 	UpdateLink(ctx context.Context, arg UpdateLinkParams) (Link, error)
 }

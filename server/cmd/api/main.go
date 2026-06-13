@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ibrahimijai/sh.sh/internal/auth"
 	"github.com/ibrahimijai/sh.sh/internal/config"
+	"github.com/ibrahimijai/sh.sh/internal/database"
+	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 	"github.com/ibrahimijai/sh.sh/internal/router"
 )
 
@@ -17,13 +19,18 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	authServer, err := auth.New(cfg)
+	conn, err := database.Open(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("failed to connect database: %v", err)
+	}
+	defer conn.Close()
+
+	authServer, err := auth.New(cfg, conn)
 	if err != nil {
 		log.Fatalf("failed to configure auth: %v", err)
 	}
-	defer authServer.Close()
 
-	r := router.SetupRouter(authServer.Handler())
+	r := router.SetupRouter(authServer, db.New(conn))
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 
