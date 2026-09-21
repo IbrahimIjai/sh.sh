@@ -23,9 +23,6 @@ func (h *LinkHandler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list links"})
 		return
 	}
-	if links == nil {
-		links = []db.Link{}
-	}
 
-	c.JSON(http.StatusOK, links)
+	c.JSON(http.StatusOK, h.linkResponses(links))
 }

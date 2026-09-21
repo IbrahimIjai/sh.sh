@@ -16,6 +16,9 @@ RUN apk add --no-cache ca-certificates \
 
 WORKDIR /app
 
+# Outside production, limen writes .limen/schemas.json to the working directory at startup.
+RUN chown app:app /app
+
 COPY --from=builder /bin/api /app/api
 
 USER app

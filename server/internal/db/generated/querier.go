@@ -10,23 +10,31 @@ import (
 )
 
 type Querier interface {
+	ClaimLinks(ctx context.Context, arg ClaimLinksParams) ([]Link, error)
 	CountClicksByLink(ctx context.Context, linkID int64) (int64, error)
 	CountClicksByLinkSince(ctx context.Context, arg CountClicksByLinkSinceParams) (int64, error)
+	CountLinksByCreatorSince(ctx context.Context, arg CountLinksByCreatorSinceParams) (int64, error)
 	CountLinksByUser(ctx context.Context, userID sql.NullInt64) (int64, error)
 	CreateDomain(ctx context.Context, arg CreateDomainParams) (Domain, error)
 	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
+	// visitor_hash rotates daily, so distinct hashes over a range add up the daily unique visitors.
+	GetClickTotalsByLink(ctx context.Context, arg GetClickTotalsByLinkParams) (GetClickTotalsByLinkRow, error)
 	GetDomainByHost(ctx context.Context, host string) (Domain, error)
 	GetLinkByID(ctx context.Context, id int64) (Link, error)
 	GetLinkBySlug(ctx context.Context, slug string) (Link, error)
-	IncrementLinkClickCount(ctx context.Context, id int64) error
+	// Top values per dimension for non-bot clicks. Each grouping set groups by one column and leaves
+	// the others NULL, so COALESCE picks out that set's value (an empty string when the value itself is NULL).
+	ListClickBreakdownByLink(ctx context.Context, arg ListClickBreakdownByLinkParams) ([]ListClickBreakdownByLinkRow, error)
 	ListClicksByLink(ctx context.Context, arg ListClicksByLinkParams) ([]Click, error)
 	ListDailyClicksByLink(ctx context.Context, arg ListDailyClicksByLinkParams) ([]ListDailyClicksByLinkRow, error)
 	ListDomainsByUser(ctx context.Context, userID int64) ([]Domain, error)
+	ListLinksByClaimTokens(ctx context.Context, claimTokenHashes []string) ([]Link, error)
 	ListLinksByUser(ctx context.Context, arg ListLinksByUserParams) ([]Link, error)
-	ListTopCountriesByLink(ctx context.Context, arg ListTopCountriesByLinkParams) ([]ListTopCountriesByLinkRow, error)
-	ListTopReferersByLink(ctx context.Context, arg ListTopReferersByLinkParams) ([]ListTopReferersByLinkRow, error)
 	MarkDomainVerified(ctx context.Context, arg MarkDomainVerifiedParams) (Domain, error)
-	RecordClick(ctx context.Context, arg RecordClickParams) (Click, error)
+	// Inserts a batch of clicks and adds the non-bot ones to links.click_count in one statement.
+	// Empty strings in the arrays are stored as NULL.
+	RecordClicks(ctx context.Context, arg RecordClicksParams) error
+	// Soft-deleted links still hold their slug: idx_links_slug is unique across all rows.
 	SlugExists(ctx context.Context, slug string) (bool, error)
 	SoftDeleteDomain(ctx context.Context, arg SoftDeleteDomainParams) error
 	SoftDeleteLink(ctx context.Context, id int64) error

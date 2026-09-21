@@ -30,14 +30,6 @@ func NewResendSender(apiKey, from string) *ResendSender {
 	}
 }
 
-type sendEmailRequest struct {
-	From    string   `json:"from"`
-	To      []string `json:"to"`
-	Subject string   `json:"subject"`
-	HTML    string   `json:"html"`
-	Text    string   `json:"text"`
-}
-
 func (s *ResendSender) Send(ctx context.Context, to, subject, htmlBody, textBody string) error {
 	if s == nil {
 		return fmt.Errorf("resend sender is not configured")
@@ -60,7 +52,7 @@ func (s *ResendSender) Send(ctx context.Context, to, subject, htmlBody, textBody
 	}
 	req.Header.Set("Authorization", "Bearer "+s.apiKey)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "sh-api/1.0")
+	req.Header.Set("User-Agent", "shortened-cv-api/1.0")
 
 	resp, err := s.client.Do(req)
 	if err != nil {

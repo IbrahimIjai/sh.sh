@@ -7,8 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 const countClicksByLink = `-- name: CountClicksByLink :one
@@ -43,8 +44,111 @@ func (q *Queries) CountClicksByLinkSince(ctx context.Context, arg CountClicksByL
 	return count, err
 }
 
+const getClickTotalsByLink = `-- name: GetClickTotalsByLink :one
+SELECT
+	COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+	COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+	COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+FROM clicks
+WHERE link_id = $1
+	AND created_at >= $2
+`
+
+type GetClickTotalsByLinkParams struct {
+	LinkID    int64     `json:"link_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type GetClickTotalsByLinkRow struct {
+	Clicks         int64 `json:"clicks"`
+	UniqueVisitors int64 `json:"unique_visitors"`
+	BotClicks      int64 `json:"bot_clicks"`
+}
+
+// visitor_hash rotates daily, so distinct hashes over a range add up the daily unique visitors.
+func (q *Queries) GetClickTotalsByLink(ctx context.Context, arg GetClickTotalsByLinkParams) (GetClickTotalsByLinkRow, error) {
+	row := q.db.QueryRowContext(ctx, getClickTotalsByLink, arg.LinkID, arg.CreatedAt)
+	var i GetClickTotalsByLinkRow
+	err := row.Scan(&i.Clicks, &i.UniqueVisitors, &i.BotClicks)
+	return i, err
+}
+
+const listClickBreakdownByLink = `-- name: ListClickBreakdownByLink :many
+SELECT ranked.dimension, ranked.name, ranked.clicks
+FROM (
+	SELECT
+		grouped.dimension,
+		grouped.name,
+		grouped.clicks,
+		ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+	FROM (
+		SELECT
+			(CASE
+				WHEN GROUPING(source) = 0 THEN 'sources'
+				WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+				WHEN GROUPING(country) = 0 THEN 'countries'
+				WHEN GROUPING(city) = 0 THEN 'cities'
+				WHEN GROUPING(device_type) = 0 THEN 'devices'
+				WHEN GROUPING(browser) = 0 THEN 'browsers'
+				WHEN GROUPING(os) = 0 THEN 'operating_systems'
+				WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+				ELSE 'utm_campaigns'
+			END)::text AS dimension,
+			COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+			COUNT(*) AS clicks
+		FROM clicks
+		WHERE link_id = $1
+			AND created_at >= $2
+			AND NOT is_bot
+		GROUP BY GROUPING SETS (
+			(source), (referer_host), (country), (city), (device_type),
+			(browser), (os), (utm_source), (utm_campaign)
+		)
+	) AS grouped
+) AS ranked
+WHERE ranked.position <= $3::bigint
+ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+`
+
+type ListClickBreakdownByLinkParams struct {
+	LinkID       int64     `json:"link_id"`
+	Since        time.Time `json:"since"`
+	PerDimension int64     `json:"per_dimension"`
+}
+
+type ListClickBreakdownByLinkRow struct {
+	Dimension string `json:"dimension"`
+	Name      string `json:"name"`
+	Clicks    int64  `json:"clicks"`
+}
+
+// Top values per dimension for non-bot clicks. Each grouping set groups by one column and leaves
+// the others NULL, so COALESCE picks out that set's value (an empty string when the value itself is NULL).
+func (q *Queries) ListClickBreakdownByLink(ctx context.Context, arg ListClickBreakdownByLinkParams) ([]ListClickBreakdownByLinkRow, error) {
+	rows, err := q.db.QueryContext(ctx, listClickBreakdownByLink, arg.LinkID, arg.Since, arg.PerDimension)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListClickBreakdownByLinkRow
+	for rows.Next() {
+		var i ListClickBreakdownByLinkRow
+		if err := rows.Scan(&i.Dimension, &i.Name, &i.Clicks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listClicksByLink = `-- name: ListClicksByLink :many
-SELECT id, link_id, ip_address, user_agent, referer, country, created_at
+SELECT id, link_id, user_agent, country, created_at, visitor_hash, referer_host, source, utm_source, utm_medium, utm_campaign, device_type, browser, os, city, is_bot
 FROM clicks
 WHERE link_id = $1
 ORDER BY created_at DESC
@@ -69,11 +173,20 @@ func (q *Queries) ListClicksByLink(ctx context.Context, arg ListClicksByLinkPara
 		if err := rows.Scan(
 			&i.ID,
 			&i.LinkID,
-			&i.IpAddress,
 			&i.UserAgent,
-			&i.Referer,
 			&i.Country,
 			&i.CreatedAt,
+			&i.VisitorHash,
+			&i.RefererHost,
+			&i.Source,
+			&i.UtmSource,
+			&i.UtmMedium,
+			&i.UtmCampaign,
+			&i.DeviceType,
+			&i.Browser,
+			&i.Os,
+			&i.City,
+			&i.IsBot,
 		); err != nil {
 			return nil, err
 		}
@@ -91,10 +204,12 @@ func (q *Queries) ListClicksByLink(ctx context.Context, arg ListClicksByLinkPara
 const listDailyClicksByLink = `-- name: ListDailyClicksByLink :many
 SELECT
 	date_trunc('day', created_at)::date AS day,
-	COUNT(*) AS clicks
+	COUNT(*) AS clicks,
+	COUNT(DISTINCT visitor_hash) AS unique_visitors
 FROM clicks
 WHERE link_id = $1
 	AND created_at >= $2
+	AND NOT is_bot
 GROUP BY day
 ORDER BY day
 `
@@ -105,8 +220,9 @@ type ListDailyClicksByLinkParams struct {
 }
 
 type ListDailyClicksByLinkRow struct {
-	Day    time.Time `json:"day"`
-	Clicks int64     `json:"clicks"`
+	Day            time.Time `json:"day"`
+	Clicks         int64     `json:"clicks"`
+	UniqueVisitors int64     `json:"unique_visitors"`
 }
 
 func (q *Queries) ListDailyClicksByLink(ctx context.Context, arg ListDailyClicksByLinkParams) ([]ListDailyClicksByLinkRow, error) {
@@ -118,7 +234,7 @@ func (q *Queries) ListDailyClicksByLink(ctx context.Context, arg ListDailyClicks
 	var items []ListDailyClicksByLinkRow
 	for rows.Next() {
 		var i ListDailyClicksByLinkRow
-		if err := rows.Scan(&i.Day, &i.Clicks); err != nil {
+		if err := rows.Scan(&i.Day, &i.Clicks, &i.UniqueVisitors); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -132,132 +248,105 @@ func (q *Queries) ListDailyClicksByLink(ctx context.Context, arg ListDailyClicks
 	return items, nil
 }
 
-const listTopCountriesByLink = `-- name: ListTopCountriesByLink :many
-SELECT
-	COALESCE(NULLIF(country, ''), 'unknown') AS country,
-	COUNT(*) AS clicks
-FROM clicks
-WHERE link_id = $1
-GROUP BY COALESCE(NULLIF(country, ''), 'unknown')
-ORDER BY clicks DESC
-LIMIT $2
-`
-
-type ListTopCountriesByLinkParams struct {
-	LinkID int64 `json:"link_id"`
-	Limit  int32 `json:"limit"`
-}
-
-type ListTopCountriesByLinkRow struct {
-	Country interface{} `json:"country"`
-	Clicks  int64       `json:"clicks"`
-}
-
-func (q *Queries) ListTopCountriesByLink(ctx context.Context, arg ListTopCountriesByLinkParams) ([]ListTopCountriesByLinkRow, error) {
-	rows, err := q.db.QueryContext(ctx, listTopCountriesByLink, arg.LinkID, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListTopCountriesByLinkRow
-	for rows.Next() {
-		var i ListTopCountriesByLinkRow
-		if err := rows.Scan(&i.Country, &i.Clicks); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listTopReferersByLink = `-- name: ListTopReferersByLink :many
-SELECT
-	COALESCE(NULLIF(referer, ''), 'direct') AS referer,
-	COUNT(*) AS clicks
-FROM clicks
-WHERE link_id = $1
-GROUP BY COALESCE(NULLIF(referer, ''), 'direct')
-ORDER BY clicks DESC
-LIMIT $2
-`
-
-type ListTopReferersByLinkParams struct {
-	LinkID int64 `json:"link_id"`
-	Limit  int32 `json:"limit"`
-}
-
-type ListTopReferersByLinkRow struct {
-	Referer interface{} `json:"referer"`
-	Clicks  int64       `json:"clicks"`
-}
-
-func (q *Queries) ListTopReferersByLink(ctx context.Context, arg ListTopReferersByLinkParams) ([]ListTopReferersByLinkRow, error) {
-	rows, err := q.db.QueryContext(ctx, listTopReferersByLink, arg.LinkID, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListTopReferersByLinkRow
-	for rows.Next() {
-		var i ListTopReferersByLinkRow
-		if err := rows.Scan(&i.Referer, &i.Clicks); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const recordClick = `-- name: RecordClick :one
-INSERT INTO clicks (
-	link_id,
-	ip_address,
-	user_agent,
-	referer,
-	country
-) VALUES (
-	$1, $2, $3, $4, $5
+const recordClicks = `-- name: RecordClicks :exec
+WITH batch AS (
+	SELECT
+		unnest($1::bigint[]) AS link_id,
+		unnest($2::text[]) AS visitor_hash,
+		unnest($3::text[]) AS user_agent,
+		unnest($4::text[]) AS referer_host,
+		unnest($5::text[]) AS source,
+		unnest($6::text[]) AS utm_source,
+		unnest($7::text[]) AS utm_medium,
+		unnest($8::text[]) AS utm_campaign,
+		unnest($9::text[]) AS device_type,
+		unnest($10::text[]) AS browser,
+		unnest($11::text[]) AS os,
+		unnest($12::text[]) AS country,
+		unnest($13::text[]) AS city,
+		unnest($14::boolean[]) AS is_bot
+),
+inserted AS (
+	INSERT INTO clicks (
+		link_id,
+		visitor_hash,
+		user_agent,
+		referer_host,
+		source,
+		utm_source,
+		utm_medium,
+		utm_campaign,
+		device_type,
+		browser,
+		os,
+		country,
+		city,
+		is_bot
+	)
+	SELECT
+		batch.link_id,
+		NULLIF(batch.visitor_hash, ''),
+		NULLIF(batch.user_agent, ''),
+		NULLIF(batch.referer_host, ''),
+		NULLIF(batch.source, ''),
+		NULLIF(batch.utm_source, ''),
+		NULLIF(batch.utm_medium, ''),
+		NULLIF(batch.utm_campaign, ''),
+		NULLIF(batch.device_type, ''),
+		NULLIF(batch.browser, ''),
+		NULLIF(batch.os, ''),
+		NULLIF(batch.country, ''),
+		NULLIF(batch.city, ''),
+		batch.is_bot
+	FROM batch
+	RETURNING clicks.link_id, clicks.is_bot
 )
-RETURNING id, link_id, ip_address, user_agent, referer, country, created_at
+UPDATE links
+SET click_count = links.click_count + counts.clicks
+FROM (
+	SELECT inserted.link_id, COUNT(*) AS clicks
+	FROM inserted
+	WHERE NOT inserted.is_bot
+	GROUP BY inserted.link_id
+) AS counts
+WHERE links.id = counts.link_id
 `
 
-type RecordClickParams struct {
-	LinkID    int64          `json:"link_id"`
-	IpAddress sql.NullString `json:"ip_address"`
-	UserAgent sql.NullString `json:"user_agent"`
-	Referer   sql.NullString `json:"referer"`
-	Country   sql.NullString `json:"country"`
+type RecordClicksParams struct {
+	LinkIds       []int64  `json:"link_ids"`
+	VisitorHashes []string `json:"visitor_hashes"`
+	UserAgents    []string `json:"user_agents"`
+	RefererHosts  []string `json:"referer_hosts"`
+	Sources       []string `json:"sources"`
+	UtmSources    []string `json:"utm_sources"`
+	UtmMediums    []string `json:"utm_mediums"`
+	UtmCampaigns  []string `json:"utm_campaigns"`
+	DeviceTypes   []string `json:"device_types"`
+	Browsers      []string `json:"browsers"`
+	Oses          []string `json:"oses"`
+	Countries     []string `json:"countries"`
+	Cities        []string `json:"cities"`
+	IsBots        []bool   `json:"is_bots"`
 }
 
-func (q *Queries) RecordClick(ctx context.Context, arg RecordClickParams) (Click, error) {
-	row := q.db.QueryRowContext(ctx, recordClick,
-		arg.LinkID,
-		arg.IpAddress,
-		arg.UserAgent,
-		arg.Referer,
-		arg.Country,
+// Inserts a batch of clicks and adds the non-bot ones to links.click_count in one statement.
+// Empty strings in the arrays are stored as NULL.
+func (q *Queries) RecordClicks(ctx context.Context, arg RecordClicksParams) error {
+	_, err := q.db.ExecContext(ctx, recordClicks,
+		pq.Array(arg.LinkIds),
+		pq.Array(arg.VisitorHashes),
+		pq.Array(arg.UserAgents),
+		pq.Array(arg.RefererHosts),
+		pq.Array(arg.Sources),
+		pq.Array(arg.UtmSources),
+		pq.Array(arg.UtmMediums),
+		pq.Array(arg.UtmCampaigns),
+		pq.Array(arg.DeviceTypes),
+		pq.Array(arg.Browsers),
+		pq.Array(arg.Oses),
+		pq.Array(arg.Countries),
+		pq.Array(arg.Cities),
+		pq.Array(arg.IsBots),
 	)
-	var i Click
-	err := row.Scan(
-		&i.ID,
-		&i.LinkID,
-		&i.IpAddress,
-		&i.UserAgent,
-		&i.Referer,
-		&i.Country,
-		&i.CreatedAt,
-	)
-	return i, err
+	return err
 }

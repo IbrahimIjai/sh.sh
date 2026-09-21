@@ -34,6 +34,24 @@ func (s *Server) RequireSession() gin.HandlerFunc {
 	}
 }
 
+// OptionalSession sets the user ID when the request carries a valid session and lets
+// everyone else through as anonymous.
+func (s *Server) OptionalSession() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if s == nil || s.limen == nil {
+			c.Next()
+			return
+		}
+
+		if session, err := s.limen.GetSession(c.Request); err == nil {
+			if userID, err := int64ID(session.User.ID); err == nil {
+				c.Set(UserIDKey, userID)
+			}
+		}
+		c.Next()
+	}
+}
+
 func int64ID(value any) (int64, error) {
 	switch v := value.(type) {
 	case int64:

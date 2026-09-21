@@ -31,11 +31,26 @@ func buildPlugins(cfg config.Config) []limen.Plugin {
 	))
 }
 
-func buildMagicLinkSender(cfg config.Config) func(magiclink.MagicLinkMessage) {
-	emailSender := email.NewResendSender(cfg.ResendAPIKey, cfg.ResendFrom)
-	if emailSender == nil {
+func buildEmailSender(cfg config.Config) email.Sender {
+	switch cfg.EmailProvider {
+	case "", "resend":
+		if sender := email.NewResendSender(cfg.ResendAPIKey, cfg.ResendFrom); sender != nil {
+			return sender
+		}
 		log.Println("resend email disabled: RESEND_API_KEY or RESEND_FROM is not set")
+	case "transend":
+		if sender := email.NewTransendSender(cfg.TransendAPIKey, cfg.TransendFrom); sender != nil {
+			return sender
+		}
+		log.Println("transend email disabled: TRANSEND_API_KEY or TRANSEND_FROM is not set")
+	default:
+		log.Printf("email disabled: unsupported EMAIL_PROVIDER %q (use resend or transend)", cfg.EmailProvider)
 	}
+	return nil
+}
+
+func buildMagicLinkSender(cfg config.Config) func(magiclink.MagicLinkMessage) {
+	emailSender := buildEmailSender(cfg)
 
 	return func(msg magiclink.MagicLinkMessage) {
 		if emailSender == nil {

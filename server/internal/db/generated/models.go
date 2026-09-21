@@ -26,13 +26,22 @@ type Account struct {
 }
 
 type Click struct {
-	ID        int64          `json:"id"`
-	LinkID    int64          `json:"link_id"`
-	IpAddress sql.NullString `json:"ip_address"`
-	UserAgent sql.NullString `json:"user_agent"`
-	Referer   sql.NullString `json:"referer"`
-	Country   sql.NullString `json:"country"`
-	CreatedAt time.Time      `json:"created_at"`
+	ID          int64          `json:"id"`
+	LinkID      int64          `json:"link_id"`
+	UserAgent   sql.NullString `json:"user_agent"`
+	Country     sql.NullString `json:"country"`
+	CreatedAt   time.Time      `json:"created_at"`
+	VisitorHash sql.NullString `json:"visitor_hash"`
+	RefererHost sql.NullString `json:"referer_host"`
+	Source      sql.NullString `json:"source"`
+	UtmSource   sql.NullString `json:"utm_source"`
+	UtmMedium   sql.NullString `json:"utm_medium"`
+	UtmCampaign sql.NullString `json:"utm_campaign"`
+	DeviceType  sql.NullString `json:"device_type"`
+	Browser     sql.NullString `json:"browser"`
+	Os          sql.NullString `json:"os"`
+	City        sql.NullString `json:"city"`
+	IsBot       bool           `json:"is_bot"`
 }
 
 type Domain struct {
@@ -47,18 +56,20 @@ type Domain struct {
 }
 
 type Link struct {
-	ID          int64          `json:"id"`
-	UserID      sql.NullInt64  `json:"user_id"`
-	Slug        string         `json:"slug"`
-	TargetUrl   string         `json:"target_url"`
-	Title       sql.NullString `json:"title"`
-	Description sql.NullString `json:"description"`
-	IsActive    bool           `json:"is_active"`
-	ClickCount  int64          `json:"click_count"`
-	ExpiresAt   sql.NullTime   `json:"expires_at"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   sql.NullTime   `json:"deleted_at"`
+	ID             int64          `json:"id"`
+	UserID         sql.NullInt64  `json:"user_id"`
+	Slug           string         `json:"slug"`
+	TargetUrl      string         `json:"target_url"`
+	Title          sql.NullString `json:"title"`
+	Description    sql.NullString `json:"description"`
+	IsActive       bool           `json:"is_active"`
+	ClickCount     int64          `json:"click_count"`
+	ExpiresAt      sql.NullTime   `json:"expires_at"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	DeletedAt      sql.NullTime   `json:"deleted_at"`
+	ClaimTokenHash sql.NullString `json:"claim_token_hash"`
+	CreatorHash    sql.NullString `json:"creator_hash"`
 }
 
 type RateLimit struct {

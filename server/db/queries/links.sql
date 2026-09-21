@@ -5,9 +5,11 @@ INSERT INTO links (
 	target_url,
 	title,
 	description,
-	expires_at
+	expires_at,
+	claim_token_hash,
+	creator_hash
 ) VALUES (
-	$1, $2, $3, $4, $5, $6
+	$1, $2, $3, $4, $5, $6, $7, $8
 )
 RETURNING *;
 
@@ -39,12 +41,6 @@ FROM links
 WHERE user_id = $1
 	AND deleted_at IS NULL;
 
--- name: IncrementLinkClickCount :exec
-UPDATE links
-SET click_count = click_count + 1,
-	updated_at = CURRENT_TIMESTAMP
-WHERE id = $1;
-
 -- name: UpdateLink :one
 UPDATE links
 SET target_url = COALESCE($2, target_url),
@@ -66,9 +62,32 @@ WHERE id = $1
 	AND deleted_at IS NULL;
 
 -- name: SlugExists :one
+-- Soft-deleted links still hold their slug: idx_links_slug is unique across all rows.
 SELECT EXISTS (
 	SELECT 1
 	FROM links
 	WHERE slug = $1
-		AND deleted_at IS NULL
 );
+
+-- name: CountLinksByCreatorSince :one
+SELECT COUNT(*)
+FROM links
+WHERE creator_hash = $1
+	AND created_at >= $2;
+
+-- name: ListLinksByClaimTokens :many
+SELECT *
+FROM links
+WHERE claim_token_hash = ANY(@claim_token_hashes::text[])
+	AND deleted_at IS NULL
+ORDER BY created_at DESC;
+
+-- name: ClaimLinks :many
+UPDATE links
+SET user_id = @user_id,
+	claim_token_hash = NULL,
+	updated_at = CURRENT_TIMESTAMP
+WHERE claim_token_hash = ANY(@claim_token_hashes::text[])
+	AND user_id IS NULL
+	AND deleted_at IS NULL
+RETURNING *;

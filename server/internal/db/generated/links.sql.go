@@ -8,7 +8,83 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
+
+	"github.com/lib/pq"
 )
+
+const claimLinks = `-- name: ClaimLinks :many
+UPDATE links
+SET user_id = $1,
+	claim_token_hash = NULL,
+	updated_at = CURRENT_TIMESTAMP
+WHERE claim_token_hash = ANY($2::text[])
+	AND user_id IS NULL
+	AND deleted_at IS NULL
+RETURNING id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
+`
+
+type ClaimLinksParams struct {
+	UserID           sql.NullInt64 `json:"user_id"`
+	ClaimTokenHashes []string      `json:"claim_token_hashes"`
+}
+
+func (q *Queries) ClaimLinks(ctx context.Context, arg ClaimLinksParams) ([]Link, error) {
+	rows, err := q.db.QueryContext(ctx, claimLinks, arg.UserID, pq.Array(arg.ClaimTokenHashes))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Link
+	for rows.Next() {
+		var i Link
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Slug,
+			&i.TargetUrl,
+			&i.Title,
+			&i.Description,
+			&i.IsActive,
+			&i.ClickCount,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.ClaimTokenHash,
+			&i.CreatorHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countLinksByCreatorSince = `-- name: CountLinksByCreatorSince :one
+SELECT COUNT(*)
+FROM links
+WHERE creator_hash = $1
+	AND created_at >= $2
+`
+
+type CountLinksByCreatorSinceParams struct {
+	CreatorHash sql.NullString `json:"creator_hash"`
+	CreatedAt   time.Time      `json:"created_at"`
+}
+
+func (q *Queries) CountLinksByCreatorSince(ctx context.Context, arg CountLinksByCreatorSinceParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countLinksByCreatorSince, arg.CreatorHash, arg.CreatedAt)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
 
 const countLinksByUser = `-- name: CountLinksByUser :one
 SELECT COUNT(*)
@@ -31,20 +107,24 @@ INSERT INTO links (
 	target_url,
 	title,
 	description,
-	expires_at
+	expires_at,
+	claim_token_hash,
+	creator_hash
 ) VALUES (
-	$1, $2, $3, $4, $5, $6
+	$1, $2, $3, $4, $5, $6, $7, $8
 )
-RETURNING id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at
+RETURNING id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 `
 
 type CreateLinkParams struct {
-	UserID      sql.NullInt64  `json:"user_id"`
-	Slug        string         `json:"slug"`
-	TargetUrl   string         `json:"target_url"`
-	Title       sql.NullString `json:"title"`
-	Description sql.NullString `json:"description"`
-	ExpiresAt   sql.NullTime   `json:"expires_at"`
+	UserID         sql.NullInt64  `json:"user_id"`
+	Slug           string         `json:"slug"`
+	TargetUrl      string         `json:"target_url"`
+	Title          sql.NullString `json:"title"`
+	Description    sql.NullString `json:"description"`
+	ExpiresAt      sql.NullTime   `json:"expires_at"`
+	ClaimTokenHash sql.NullString `json:"claim_token_hash"`
+	CreatorHash    sql.NullString `json:"creator_hash"`
 }
 
 func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error) {
@@ -55,6 +135,8 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 		arg.Title,
 		arg.Description,
 		arg.ExpiresAt,
+		arg.ClaimTokenHash,
+		arg.CreatorHash,
 	)
 	var i Link
 	err := row.Scan(
@@ -70,12 +152,14 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ClaimTokenHash,
+		&i.CreatorHash,
 	)
 	return i, err
 }
 
 const getLinkByID = `-- name: GetLinkByID :one
-SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at
+SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 FROM links
 WHERE id = $1
 	AND deleted_at IS NULL
@@ -97,12 +181,14 @@ func (q *Queries) GetLinkByID(ctx context.Context, id int64) (Link, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ClaimTokenHash,
+		&i.CreatorHash,
 	)
 	return i, err
 }
 
 const getLinkBySlug = `-- name: GetLinkBySlug :one
-SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at
+SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 FROM links
 WHERE slug = $1
 	AND is_active = TRUE
@@ -126,24 +212,60 @@ func (q *Queries) GetLinkBySlug(ctx context.Context, slug string) (Link, error) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ClaimTokenHash,
+		&i.CreatorHash,
 	)
 	return i, err
 }
 
-const incrementLinkClickCount = `-- name: IncrementLinkClickCount :exec
-UPDATE links
-SET click_count = click_count + 1,
-	updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
+const listLinksByClaimTokens = `-- name: ListLinksByClaimTokens :many
+SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
+FROM links
+WHERE claim_token_hash = ANY($1::text[])
+	AND deleted_at IS NULL
+ORDER BY created_at DESC
 `
 
-func (q *Queries) IncrementLinkClickCount(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, incrementLinkClickCount, id)
-	return err
+func (q *Queries) ListLinksByClaimTokens(ctx context.Context, claimTokenHashes []string) ([]Link, error) {
+	rows, err := q.db.QueryContext(ctx, listLinksByClaimTokens, pq.Array(claimTokenHashes))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Link
+	for rows.Next() {
+		var i Link
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Slug,
+			&i.TargetUrl,
+			&i.Title,
+			&i.Description,
+			&i.IsActive,
+			&i.ClickCount,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.ClaimTokenHash,
+			&i.CreatorHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listLinksByUser = `-- name: ListLinksByUser :many
-SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at
+SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 FROM links
 WHERE user_id = $1
 	AND deleted_at IS NULL
@@ -179,6 +301,8 @@ func (q *Queries) ListLinksByUser(ctx context.Context, arg ListLinksByUserParams
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.ClaimTokenHash,
+			&i.CreatorHash,
 		); err != nil {
 			return nil, err
 		}
@@ -198,10 +322,10 @@ SELECT EXISTS (
 	SELECT 1
 	FROM links
 	WHERE slug = $1
-		AND deleted_at IS NULL
 )
 `
 
+// Soft-deleted links still hold their slug: idx_links_slug is unique across all rows.
 func (q *Queries) SlugExists(ctx context.Context, slug string) (bool, error) {
 	row := q.db.QueryRowContext(ctx, slugExists, slug)
 	var exists bool
@@ -233,7 +357,7 @@ SET target_url = COALESCE($2, target_url),
 	updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 	AND deleted_at IS NULL
-RETURNING id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at
+RETURNING id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 `
 
 type UpdateLinkParams struct {
@@ -268,6 +392,8 @@ func (q *Queries) UpdateLink(ctx context.Context, arg UpdateLinkParams) (Link, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ClaimTokenHash,
+		&i.CreatorHash,
 	)
 	return i, err
 }

@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,13 +16,7 @@ func (h *LinkHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	link, err := h.queries.GetLinkByID(c.Request.Context(), id)
-	if errors.Is(err, sql.ErrNoRows) || !link.UserID.Valid || link.UserID.Int64 != userID {
-		c.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
-		return
-	}
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not load link"})
+	if _, ok := h.ownedLink(c, userID, id); !ok {
 		return
 	}
 
