@@ -11,6 +11,7 @@ import (
 // Click is one visit to a short link, with the raw IP and full referrer URL already dropped.
 // String fields are "" when unknown.
 type Click struct {
+	CreatedAt   time.Time
 	LinkID      int64
 	VisitorHash string
 	UserAgent   string
@@ -54,10 +55,12 @@ func (c *Collector) Collect(r *http.Request, clientIP string, linkID int64) Clic
 	refererHost := RefererHost(r.Referer(), c.cfg.OwnHost)
 	query := r.URL.Query()
 	country, city := c.locate(r, clientIP)
+	now := c.now()
 
 	return Click{
+		CreatedAt:   now,
 		LinkID:      linkID,
-		VisitorHash: c.cfg.Hasher.Visitor(clientIP, userAgent, c.now()),
+		VisitorHash: c.cfg.Hasher.Visitor(clientIP, userAgent, now),
 		UserAgent:   truncate(userAgent, 512),
 		RefererHost: truncate(refererHost, 255),
 		Source:      truncate(Source(refererHost, ua.App), 255),

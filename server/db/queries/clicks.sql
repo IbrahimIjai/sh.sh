@@ -1,8 +1,15 @@
 -- name: RecordClicks :exec
 -- Inserts a batch of clicks and adds the non-bot ones to links.click_count in one statement.
 -- Empty strings in the arrays are stored as NULL.
-WITH batch AS (
+-- Reuse batch_id on every retry, including after an ambiguous commit outcome.
+WITH accepted_batch AS (
+	INSERT INTO click_batches (id) VALUES (@batch_id::text)
+	ON CONFLICT (id) DO NOTHING
+	RETURNING id
+),
+batch AS (
 	SELECT
+		unnest(@created_ats::timestamptz[]) AS created_at,
 		unnest(@link_ids::bigint[]) AS link_id,
 		unnest(@visitor_hashes::text[]) AS visitor_hash,
 		unnest(@user_agents::text[]) AS user_agent,
@@ -20,6 +27,7 @@ WITH batch AS (
 ),
 inserted AS (
 	INSERT INTO clicks (
+		created_at,
 		link_id,
 		visitor_hash,
 		user_agent,
@@ -36,6 +44,7 @@ inserted AS (
 		is_bot
 	)
 	SELECT
+		batch.created_at,
 		batch.link_id,
 		NULLIF(batch.visitor_hash, ''),
 		NULLIF(batch.user_agent, ''),
@@ -51,6 +60,7 @@ inserted AS (
 		NULLIF(batch.city, ''),
 		batch.is_bot
 	FROM batch
+	WHERE EXISTS (SELECT 1 FROM accepted_batch)
 	RETURNING clicks.link_id, clicks.is_bot
 )
 UPDATE links

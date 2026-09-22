@@ -24,17 +24,21 @@ import (
 )
 
 func main() {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("invalid configuration: %v", err)
+	}
 
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	conn, err := database.Open(cfg.DatabaseURL)
+	conn, err := database.Open(cfg.DatabaseURL, cfg.DBMaxOpenConns, cfg.DBMaxIdleConns)
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
 	defer conn.Close()
+	log.Printf("database pool: max open=%d, max idle=%d", cfg.DBMaxOpenConns, cfg.DBMaxIdleConns)
 
 	authServer, err := auth.New(cfg, conn)
 	if err != nil {

@@ -249,25 +249,32 @@ func (q *Queries) ListDailyClicksByLink(ctx context.Context, arg ListDailyClicks
 }
 
 const recordClicks = `-- name: RecordClicks :exec
-WITH batch AS (
+WITH accepted_batch AS (
+	INSERT INTO click_batches (id) VALUES ($1::text)
+	ON CONFLICT (id) DO NOTHING
+	RETURNING id
+),
+batch AS (
 	SELECT
-		unnest($1::bigint[]) AS link_id,
-		unnest($2::text[]) AS visitor_hash,
-		unnest($3::text[]) AS user_agent,
-		unnest($4::text[]) AS referer_host,
-		unnest($5::text[]) AS source,
-		unnest($6::text[]) AS utm_source,
-		unnest($7::text[]) AS utm_medium,
-		unnest($8::text[]) AS utm_campaign,
-		unnest($9::text[]) AS device_type,
-		unnest($10::text[]) AS browser,
-		unnest($11::text[]) AS os,
-		unnest($12::text[]) AS country,
-		unnest($13::text[]) AS city,
-		unnest($14::boolean[]) AS is_bot
+		unnest($2::timestamptz[]) AS created_at,
+		unnest($3::bigint[]) AS link_id,
+		unnest($4::text[]) AS visitor_hash,
+		unnest($5::text[]) AS user_agent,
+		unnest($6::text[]) AS referer_host,
+		unnest($7::text[]) AS source,
+		unnest($8::text[]) AS utm_source,
+		unnest($9::text[]) AS utm_medium,
+		unnest($10::text[]) AS utm_campaign,
+		unnest($11::text[]) AS device_type,
+		unnest($12::text[]) AS browser,
+		unnest($13::text[]) AS os,
+		unnest($14::text[]) AS country,
+		unnest($15::text[]) AS city,
+		unnest($16::boolean[]) AS is_bot
 ),
 inserted AS (
 	INSERT INTO clicks (
+		created_at,
 		link_id,
 		visitor_hash,
 		user_agent,
@@ -284,6 +291,7 @@ inserted AS (
 		is_bot
 	)
 	SELECT
+		batch.created_at,
 		batch.link_id,
 		NULLIF(batch.visitor_hash, ''),
 		NULLIF(batch.user_agent, ''),
@@ -299,6 +307,7 @@ inserted AS (
 		NULLIF(batch.city, ''),
 		batch.is_bot
 	FROM batch
+	WHERE EXISTS (SELECT 1 FROM accepted_batch)
 	RETURNING clicks.link_id, clicks.is_bot
 )
 UPDATE links
@@ -313,26 +322,31 @@ WHERE links.id = counts.link_id
 `
 
 type RecordClicksParams struct {
-	LinkIds       []int64  `json:"link_ids"`
-	VisitorHashes []string `json:"visitor_hashes"`
-	UserAgents    []string `json:"user_agents"`
-	RefererHosts  []string `json:"referer_hosts"`
-	Sources       []string `json:"sources"`
-	UtmSources    []string `json:"utm_sources"`
-	UtmMediums    []string `json:"utm_mediums"`
-	UtmCampaigns  []string `json:"utm_campaigns"`
-	DeviceTypes   []string `json:"device_types"`
-	Browsers      []string `json:"browsers"`
-	Oses          []string `json:"oses"`
-	Countries     []string `json:"countries"`
-	Cities        []string `json:"cities"`
-	IsBots        []bool   `json:"is_bots"`
+	BatchID       string      `json:"batch_id"`
+	CreatedAts    []time.Time `json:"created_ats"`
+	LinkIds       []int64     `json:"link_ids"`
+	VisitorHashes []string    `json:"visitor_hashes"`
+	UserAgents    []string    `json:"user_agents"`
+	RefererHosts  []string    `json:"referer_hosts"`
+	Sources       []string    `json:"sources"`
+	UtmSources    []string    `json:"utm_sources"`
+	UtmMediums    []string    `json:"utm_mediums"`
+	UtmCampaigns  []string    `json:"utm_campaigns"`
+	DeviceTypes   []string    `json:"device_types"`
+	Browsers      []string    `json:"browsers"`
+	Oses          []string    `json:"oses"`
+	Countries     []string    `json:"countries"`
+	Cities        []string    `json:"cities"`
+	IsBots        []bool      `json:"is_bots"`
 }
 
 // Inserts a batch of clicks and adds the non-bot ones to links.click_count in one statement.
 // Empty strings in the arrays are stored as NULL.
+// Reuse batch_id on every retry, including after an ambiguous commit outcome.
 func (q *Queries) RecordClicks(ctx context.Context, arg RecordClicksParams) error {
 	_, err := q.db.ExecContext(ctx, recordClicks,
+		arg.BatchID,
+		pq.Array(arg.CreatedAts),
 		pq.Array(arg.LinkIds),
 		pq.Array(arg.VisitorHashes),
 		pq.Array(arg.UserAgents),

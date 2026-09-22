@@ -1,0 +1,2868 @@
+db-1  | The files belonging to this database system will be owned by user "postgres".
+db-1  | This user must also own the server process.
+db-1  | 
+db-1  | The database cluster will be initialized with locale "en_US.utf8".
+db-1  | The default database encoding has accordingly been set to "UTF8".
+db-1  | The default text search configuration will be set to "english".
+db-1  | 
+db-1  | Data page checksums are disabled.
+db-1  | 
+db-1  | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+db-1  | creating subdirectories ... ok
+db-1  | selecting dynamic shared memory implementation ... posix
+db-1  | selecting default "max_connections" ... 100
+db-1  | selecting default "shared_buffers" ... 128MB
+db-1  | selecting default time zone ... UTC
+db-1  | creating configuration files ... ok
+db-1  | running bootstrap script ... ok
+db-1  | sh: locale: not found
+db-1  | 2026-09-22 12:10:32.439 UTC [34] WARNING:  no usable system locales were found
+db-1  | performing post-bootstrap initialization ... ok
+db-1  | syncing data to disk ... ok
+db-1  | 
+db-1  | 
+db-1  | Success. You can now start the database server using:
+db-1  | 
+db-1  |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+db-1  | 
+db-1  | initdb: warning: enabling "trust" authentication for local connections
+db-1  | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+db-1  | waiting for server to start....2026-09-22 12:10:33.771 UTC [45] LOG:  starting PostgreSQL 17.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+db-1  | 2026-09-22 12:10:33.774 UTC [45] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+db-1  | 2026-09-22 12:10:33.787 UTC [54] LOG:  database system was shut down at 2026-09-22 12:10:32 UTC
+db-1  | 2026-09-22 12:10:33.806 UTC [45] LOG:  database system is ready to accept connections
+db-1  | 2026-09-22 12:10:33.831 UTC [58] FATAL:  database "benchmark" does not exist
+db-1  |  done
+db-1  | server started
+db-1  | CREATE DATABASE
+db-1  | 
+db-1  | 
+db-1  | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+db-1  | 
+db-1  | waiting for server to shut down...2026-09-22 12:10:34.025 UTC [45] LOG:  received fast shutdown request
+db-1  | .2026-09-22 12:10:34.027 UTC [45] LOG:  aborting any active transactions
+db-1  | 2026-09-22 12:10:34.033 UTC [45] LOG:  background worker "logical replication launcher" (PID 57) exited with exit code 1
+db-1  | 2026-09-22 12:10:34.034 UTC [52] LOG:  shutting down
+db-1  | 2026-09-22 12:10:34.036 UTC [52] LOG:  checkpoint starting: shutdown immediate
+db-1  | 2026-09-22 12:10:34.249 UTC [52] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.030 s, sync=0.177 s, total=0.216 s; sync files=301, longest=0.002 s, average=0.001 s; distance=4266 kB, estimate=4266 kB; lsn=0/191E820, redo lsn=0/191E820
+db-1  | 2026-09-22 12:10:34.280 UTC [45] LOG:  database system is shut down
+db-1  |  done
+db-1  | server stopped
+db-1  | 
+db-1  | PostgreSQL init process complete; ready for start up.
+db-1  | 
+db-1  | 2026-09-22 12:10:34.404 UTC [1] LOG:  starting PostgreSQL 17.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+db-1  | 2026-09-22 12:10:34.404 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+db-1  | 2026-09-22 12:10:34.404 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+db-1  | 2026-09-22 12:10:34.408 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+db-1  | 2026-09-22 12:10:34.418 UTC [74] LOG:  database system was shut down at 2026-09-22 12:10:34 UTC
+db-1  | 2026-09-22 12:10:34.432 UTC [1] LOG:  database system is ready to accept connections
+db-1  | 2026-09-22 12:11:18.225 UTC [72] LOG:  checkpoint starting: wal
+db-1  | 2026-09-22 12:11:56.972 UTC [72] LOG:  checkpoint complete: wrote 2333 buffers (14.2%); 0 WAL file(s) added, 0 removed, 33 recycled; write=38.446 s, sync=0.157 s, total=38.747 s; sync files=130, longest=0.018 s, average=0.002 s; distance=531385 kB, estimate=531385 kB; lsn=0/400316E8, redo lsn=0/2200CEA0
+db-1  | 2026-09-22 12:12:01.381 UTC [72] LOG:  checkpoint starting: wal
+db-1  | 2026-09-22 12:12:47.127 UTC [72] LOG:  checkpoint complete: wrote 3079 buffers (18.8%); 0 WAL file(s) added, 0 removed, 33 recycled; write=45.597 s, sync=0.045 s, total=45.746 s; sync files=19, longest=0.024 s, average=0.003 s; distance=542348 kB, estimate=542348 kB; lsn=0/60DF2CF8, redo lsn=0/431B01B8
+db-1  | 2026-09-22 12:12:52.917 UTC [72] LOG:  checkpoint starting: wal
+db-1  | 2026-09-22 12:13:15.038 UTC [1316] ERROR:  canceling autovacuum task
+db-1  | 2026-09-22 12:13:15.038 UTC [1316] CONTEXT:  automatic vacuum of table "benchmark.public.clicks"
+db-1  | 2026-09-22 12:15:07.879 UTC [1726] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:07.879 UTC [1726] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:16.574 UTC [1721] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:16.574 UTC [1721] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:16.656 UTC [1719] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:16.656 UTC [1719] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:16.919 UTC [1725] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:16.919 UTC [1725] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:17.751 UTC [1715] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:17.751 UTC [1715] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:18.674 UTC [1723] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:18.674 UTC [1723] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:18.853 UTC [2409] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:18.853 UTC [2409] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:19.978 UTC [2411] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:19.978 UTC [2411] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:20.864 UTC [1713] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:20.864 UTC [1713] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:21.508 UTC [1720] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:21.508 UTC [1720] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:24.700 UTC [1714] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:24.700 UTC [1714] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:26.871 UTC [1718] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:26.871 UTC [1718] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:27.652 UTC [1727] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:27.652 UTC [1727] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:29.583 UTC [1724] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:29.583 UTC [1724] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:29.606 UTC [2459] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:29.606 UTC [2459] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:32.251 UTC [2508] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:32.251 UTC [2508] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:32.299 UTC [1711] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:32.299 UTC [1711] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:33.606 UTC [1722] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:33.606 UTC [1722] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:35.698 UTC [2550] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:35.698 UTC [2550] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:35.961 UTC [2526] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:35.961 UTC [2526] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:36.866 UTC [1712] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:36.866 UTC [1712] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:37.879 UTC [2438] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:37.879 UTC [2438] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:40.274 UTC [2359] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:40.274 UTC [2359] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:47.764 UTC [1437] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:47.764 UTC [1437] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:48.677 UTC [2441] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:48.677 UTC [2441] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:48.863 UTC [2492] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:48.863 UTC [2492] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:49.987 UTC [2592] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:49.987 UTC [2592] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:50.864 UTC [2461] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:50.864 UTC [2461] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:51.561 UTC [2413] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:51.561 UTC [2413] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:15:54.694 UTC [2524] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:54.694 UTC [2524] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:56.830 UTC [1729] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:56.830 UTC [1729] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:57.621 UTC [2422] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:57.621 UTC [2422] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:15:59.576 UTC [1717] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:59.576 UTC [1717] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:15:59.599 UTC [2584] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:15:59.599 UTC [2584] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:16:14.050 UTC [1728] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:14.050 UTC [1728] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:14.163 UTC [2704] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:14.163 UTC [2704] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:14.650 UTC [2707] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:14.650 UTC [2707] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:15.157 UTC [2780] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:15.157 UTC [2780] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:16.315 UTC [2548] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:16.315 UTC [2548] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:21.211 UTC [2696] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:21.211 UTC [2696] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:21.900 UTC [2675] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:21.900 UTC [2675] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:22.368 UTC [2506] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:22.368 UTC [2506] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:22.493 UTC [2687] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:22.493 UTC [2687] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:23.559 UTC [2450] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:23.559 UTC [2450] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:25.176 UTC [2617] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:25.176 UTC [2617] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:28.064 UTC [2778] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:28.064 UTC [2778] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:29.659 UTC [2580] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:29.659 UTC [2580] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:30.099 UTC [2914] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:30.099 UTC [2914] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:31.252 UTC [2916] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:31.252 UTC [2916] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:31.265 UTC [2999] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:31.265 UTC [2999] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:33.749 UTC [2979] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:33.749 UTC [2979] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:33.779 UTC [2912] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:33.779 UTC [2912] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:34.809 UTC [3050] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:34.809 UTC [3050] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:36.588 UTC [2614] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:36.588 UTC [2614] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:37.303 UTC [2992] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:37.303 UTC [2992] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:38.611 UTC [3058] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:38.611 UTC [3058] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:40.853 UTC [2738] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:40.853 UTC [2738] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:41.127 UTC [2755] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:41.127 UTC [2755] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:43.833 UTC [2981] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:43.833 UTC [2981] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:43.903 UTC [3033] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:43.903 UTC [3033] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:44.396 UTC [1716] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:44.396 UTC [1716] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:44.956 UTC [3147] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:44.956 UTC [3147] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:45.196 UTC [2685] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:45.196 UTC [2685] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:46.183 UTC [3105] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:46.183 UTC [3105] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:46.251 UTC [3010] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:46.251 UTC [3010] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:46.504 UTC [2559] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:46.504 UTC [2559] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:47.023 UTC [2756] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:47.023 UTC [2756] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:50.581 UTC [2990] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:50.581 UTC [2990] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:52.727 UTC [3042] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:52.727 UTC [3042] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:52.778 UTC [2925] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:52.778 UTC [2925] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:53.076 UTC [3197] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:53.076 UTC [3197] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:53.890 UTC [3095] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:53.890 UTC [3095] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:16:54.363 UTC [3084] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:54.363 UTC [3084] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:16:55.959 UTC [3234] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:55.959 UTC [3234] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:58.757 UTC [3086] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:58.757 UTC [3086] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:16:59.309 UTC [3199] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:16:59.309 UTC [3199] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:00.952 UTC [3301] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:00.952 UTC [3301] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:17:01.551 UTC [3311] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:01.551 UTC [3311] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:17:01.670 UTC [3210] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:01.670 UTC [3210] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:17:02.239 UTC [3251] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:02.239 UTC [3251] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:17:02.947 UTC [3261] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:02.947 UTC [3261] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:06.084 UTC [3320] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:06.084 UTC [3320] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:10.796 UTC [3268] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:10.796 UTC [3268] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:17:10.865 UTC [3285] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:10.865 UTC [3285] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:17:11.287 UTC [3339] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:11.287 UTC [3339] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:11.750 UTC [3172] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:11.750 UTC [3172] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:17:12.302 UTC [3350] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:12.302 UTC [3350] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:17:22.668 UTC [72] LOG:  checkpoint complete: wrote 1820 buffers (11.1%); 0 WAL file(s) added, 0 removed, 33 recycled; write=269.140 s, sync=0.133 s, total=269.751 s; sync files=66, longest=0.034 s, average=0.003 s; distance=540493 kB, estimate=542163 kB; lsn=0/7B948E88, redo lsn=0/64183728
+db-1  | 2026-09-22 12:17:25.352 UTC [3500] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:25.352 UTC [3500] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:25.452 UTC [3503] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:25.452 UTC [3503] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:25.667 UTC [3501] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:25.667 UTC [3501] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:25.853 UTC [3545] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:25.853 UTC [3545] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:17:25.949 UTC [3502] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:25.949 UTC [3502] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:28.758 UTC [3060] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:28.758 UTC [3060] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:36.252 UTC [3188] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:36.252 UTC [3188] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:36.285 UTC [3186] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:36.285 UTC [3186] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:36.452 UTC [3541] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:36.452 UTC [3541] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:37.301 UTC [3567] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:37.301 UTC [3567] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:38.199 UTC [3571] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:38.199 UTC [3571] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:38.283 UTC [3183] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:38.283 UTC [3183] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:39.670 UTC [3547] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:39.670 UTC [3547] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:41.254 UTC [3634] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:41.254 UTC [3634] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:42.658 UTC [3641] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:42.658 UTC [3641] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:46.149 UTC [3145] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:46.149 UTC [3145] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:49.381 UTC [2941] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:49.381 UTC [2941] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:50.602 UTC [3249] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:50.602 UTC [3249] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:51.156 UTC [3630] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:51.156 UTC [3630] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:52.094 UTC [3767] LOG:  PID 3740 in cancel request did not match any process
+db-1  | 2026-09-22 12:17:52.111 UTC [3751] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:52.111 UTC [3751] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:17:52.153 UTC [3699] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:52.153 UTC [3699] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:52.166 UTC [3776] LOG:  PID 3747 in cancel request did not match any process
+db-1  | 2026-09-22 12:17:52.173 UTC [3779] LOG:  PID 3757 in cancel request did not match any process
+db-1  | 2026-09-22 12:17:52.176 UTC [3671] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:17:52.176 UTC [3671] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:17:52.349 UTC [72] LOG:  checkpoint starting: time
+db-1  | 2026-09-22 12:18:11.552 UTC [3911] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:18:11.552 UTC [3911] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:18:12.759 UTC [3782] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:18:12.759 UTC [3782] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:18:17.282 UTC [3504] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:18:17.282 UTC [3504] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:18:22.490 UTC [3909] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:18:22.490 UTC [3909] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:18:34.461 UTC [3957] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:18:34.461 UTC [3957] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:18:41.556 UTC [3902] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:18:41.556 UTC [3902] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:18:42.758 UTC [3761] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:18:42.758 UTC [3761] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:18:47.263 UTC [3781] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:18:47.263 UTC [3781] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:18:52.495 UTC [3908] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:18:52.495 UTC [3908] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:19:04.455 UTC [3915] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:04.455 UTC [3915] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:19:11.577 UTC [3914] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:11.577 UTC [3914] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:19:12.752 UTC [3912] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:12.752 UTC [3912] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:19:14.688 UTC [72] LOG:  checkpoint complete: wrote 357 buffers (2.2%); 0 WAL file(s) added, 0 removed, 24 recycled; write=82.005 s, sync=0.105 s, total=82.339 s; sync files=18, longest=0.045 s, average=0.006 s; distance=393032 kB, estimate=527250 kB; lsn=0/81555618, redo lsn=0/7C155AD8
+db-1  | 2026-09-22 12:19:17.268 UTC [3905] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:17.268 UTC [3905] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:19:22.456 UTC [4148] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:22.456 UTC [4148] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:19:34.464 UTC [3910] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:34.464 UTC [3910] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:19:41.649 UTC [4280] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:41.649 UTC [4280] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:19:42.749 UTC [3903] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:42.749 UTC [3903] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:19:47.271 UTC [4096] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:47.271 UTC [4096] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:19:52.456 UTC [3989] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:19:52.456 UTC [3989] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:20:04.427 UTC [4139] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:04.427 UTC [4139] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:20:19.750 UTC [3900] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:19.750 UTC [3900] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:19.760 UTC [4024] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:19.760 UTC [4024] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:20.055 UTC [4325] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:20.055 UTC [4325] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:20.271 UTC [4335] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:20.271 UTC [4335] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:21.087 UTC [4808] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:21.087 UTC [4808] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:21.153 UTC [4800] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:21.153 UTC [4800] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:21.457 UTC [4594] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:21.457 UTC [4594] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:21.679 UTC [4372] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:21.679 UTC [4372] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:22.457 UTC [4826] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:22.457 UTC [4826] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:20:23.149 UTC [3907] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:23.149 UTC [3907] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:28.652 UTC [3906] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:28.652 UTC [3906] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:29.549 UTC [4529] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:29.549 UTC [4529] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:29.657 UTC [4839] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:29.657 UTC [4839] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:20:29.674 UTC [4481] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:29.674 UTC [4481] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:29.752 UTC [4770] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:29.752 UTC [4770] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:29.774 UTC [4861] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:29.774 UTC [4861] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:30.058 UTC [4844] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:30.058 UTC [4844] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:30.154 UTC [4207] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:30.154 UTC [4207] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:20:30.158 UTC [4401] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:30.158 UTC [4401] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:20:30.581 UTC [4911] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:30.581 UTC [4911] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:31.067 UTC [4922] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:31.067 UTC [4922] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:20:31.385 UTC [4899] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:31.385 UTC [4899] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:31.555 UTC [4910] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:31.555 UTC [4910] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:32.179 UTC [4934] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:32.179 UTC [4934] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:35.056 UTC [4945] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:35.056 UTC [4945] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:36.060 UTC [4927] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:36.060 UTC [4927] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:36.186 UTC [4944] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:36.186 UTC [4944] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:38.252 UTC [4956] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:38.252 UTC [4956] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:38.699 UTC [4885] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:38.699 UTC [4885] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:38.760 UTC [3913] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:38.760 UTC [3913] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:38.955 UTC [4932] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:38.955 UTC [4932] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:38.957 UTC [4941] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:38.957 UTC [4941] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:39.071 UTC [5008] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:39.071 UTC [5008] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:20:41.185 UTC [5019] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:41.185 UTC [5019] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:43.255 UTC [4857] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:43.255 UTC [4857] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:43.766 UTC [4993] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:43.766 UTC [4993] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	
+db-1  | 2026-09-22 12:20:44.055 UTC [5055] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:44.055 UTC [5055] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:44.757 UTC [5062] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:44.757 UTC [5062] STATEMENT:  -- name: ListDailyClicksByLink :many
+db-1  | 	SELECT
+db-1  | 		date_trunc('day', created_at)::date AS day,
+db-1  | 		COUNT(*) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) AS unique_visitors
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 		AND NOT is_bot
+db-1  | 	GROUP BY day
+db-1  | 	ORDER BY day
+db-1  | 	
+db-1  | 2026-09-22 12:20:44.955 UTC [4954] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:44.955 UTC [4954] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:46.456 UTC [5094] LOG:  PID 5079 in cancel request did not match any process
+db-1  | 2026-09-22 12:20:46.466 UTC [5016] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:46.466 UTC [5016] STATEMENT:  -- name: GetClickTotalsByLink :one
+db-1  | 	SELECT
+db-1  | 		COUNT(*) FILTER (WHERE NOT is_bot) AS clicks,
+db-1  | 		COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot) AS unique_visitors,
+db-1  | 		COUNT(*) FILTER (WHERE is_bot) AS bot_clicks
+db-1  | 	FROM clicks
+db-1  | 	WHERE link_id = $1
+db-1  | 		AND created_at >= $2
+db-1  | 	
+db-1  | 2026-09-22 12:20:46.550 UTC [5054] ERROR:  canceling statement due to user request
+db-1  | 2026-09-22 12:20:46.550 UTC [5054] STATEMENT:  -- name: ListClickBreakdownByLink :many
+db-1  | 	SELECT ranked.dimension, ranked.name, ranked.clicks
+db-1  | 	FROM (
+db-1  | 		SELECT
+db-1  | 			grouped.dimension,
+db-1  | 			grouped.name,
+db-1  | 			grouped.clicks,
+db-1  | 			ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
+db-1  | 		FROM (
+db-1  | 			SELECT
+db-1  | 				(CASE
+db-1  | 					WHEN GROUPING(source) = 0 THEN 'sources'
+db-1  | 					WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+db-1  | 					WHEN GROUPING(country) = 0 THEN 'countries'
+db-1  | 					WHEN GROUPING(city) = 0 THEN 'cities'
+db-1  | 					WHEN GROUPING(device_type) = 0 THEN 'devices'
+db-1  | 					WHEN GROUPING(browser) = 0 THEN 'browsers'
+db-1  | 					WHEN GROUPING(os) = 0 THEN 'operating_systems'
+db-1  | 					WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+db-1  | 					ELSE 'utm_campaigns'
+db-1  | 				END)::text AS dimension,
+db-1  | 				COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+db-1  | 				COUNT(*) AS clicks
+db-1  | 			FROM clicks
+db-1  | 			WHERE link_id = $1
+db-1  | 				AND created_at >= $2
+db-1  | 				AND NOT is_bot
+db-1  | 			GROUP BY GROUPING SETS (
+db-1  | 				(source), (referer_host), (country), (city), (device_type),
+db-1  | 				(browser), (os), (utm_source), (utm_campaign)
+db-1  | 			)
+db-1  | 		) AS grouped
+db-1  | 	) AS ranked
+db-1  | 	WHERE ranked.position <= $3::bigint
+db-1  | 	ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+db-1  | 	

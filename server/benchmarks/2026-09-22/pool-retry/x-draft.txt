@@ -1,0 +1,1 @@
+Pool tuning paid off: shortened.cv handled 1,000 redirects/sec + 5 analytics reads/sec for 2 minutes. p95 4.01ms, zero HTTP errors/dropped iterations, all 120,000 clicks recorded. Go + Postgres, same 2-CPU limits. Local synthetic benchmark on one laptop.

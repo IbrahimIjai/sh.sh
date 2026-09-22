@@ -1,0 +1,1 @@
+Load-tested shortened.cv locally: 150 redirects/sec + 5 analytics reads/sec for 2 minutes. p95 4.29ms, p99 8.41ms, zero HTTP errors, all 18,001 clicks recorded. Go + PostgreSQL, each capped at 2 CPUs, sharing one laptop. Synthetic benchmark; next up: database pool tuning.

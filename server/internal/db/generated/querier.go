@@ -33,6 +33,7 @@ type Querier interface {
 	MarkDomainVerified(ctx context.Context, arg MarkDomainVerifiedParams) (Domain, error)
 	// Inserts a batch of clicks and adds the non-bot ones to links.click_count in one statement.
 	// Empty strings in the arrays are stored as NULL.
+	// Reuse batch_id on every retry, including after an ambiguous commit outcome.
 	RecordClicks(ctx context.Context, arg RecordClicksParams) error
 	// Soft-deleted links still hold their slug: idx_links_slug is unique across all rows.
 	SlugExists(ctx context.Context, slug string) (bool, error)

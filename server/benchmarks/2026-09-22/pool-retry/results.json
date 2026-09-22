@@ -1,0 +1,666 @@
+[
+  {
+    "phase": "ramp",
+    "run": "run-1-150rps",
+    "target_rps": 150,
+    "duration_s": 30,
+    "stats_rps": 5,
+    "wall_seconds_including_container": 31.936797045003914,
+    "http_requests": 4652,
+    "redirects": 4501,
+    "measured_seconds": 30.015315944999998,
+    "completed_duration": true,
+    "redirect_rps": 149.95677567571246,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "latency_ms": {
+      "med": 2.641714,
+      "p(95)": 4.547694,
+      "p(99)": 6.90132,
+      "max": 31.917667,
+      "avg": 2.670772669406801
+    },
+    "stats_latency_ms": {
+      "med": 13.677134,
+      "p(95)": 23.6386725,
+      "p(99)": 34.912513000000004,
+      "max": 59.242544,
+      "avg": 13.586069225165565
+    },
+    "human_redirects": 4050,
+    "bot_redirects": 451,
+    "stored_clicks": 4501,
+    "stored_human_clicks": 4050,
+    "stored_bot_clicks": 451,
+    "link_counter_delta": 4050,
+    "analytics_match": true,
+    "stats_reconciliation": [
+      {
+        "link_id": 1,
+        "api": [
+          0,
+          0,
+          5
+        ],
+        "database": [
+          0,
+          0,
+          5
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "api": [
+          5,
+          1,
+          0
+        ],
+        "database": [
+          5,
+          1,
+          0
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "api": [
+          4,
+          1,
+          0
+        ],
+        "database": [
+          4,
+          1,
+          0
+        ],
+        "match": true
+      }
+    ],
+    "settle_wait_s": 1.2779619680004544,
+    "k6_exit_code": 0,
+    "thresholds_passed": true
+  },
+  {
+    "phase": "ramp",
+    "run": "run-2-250rps",
+    "target_rps": 250,
+    "duration_s": 30,
+    "stats_rps": 5,
+    "wall_seconds_including_container": 31.23124006600119,
+    "http_requests": 7651,
+    "redirects": 7500,
+    "measured_seconds": 30.012481071,
+    "completed_duration": true,
+    "redirect_rps": 249.89603432843094,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "latency_ms": {
+      "p(95)": 5.162039249999998,
+      "p(99)": 8.700955250000005,
+      "max": 67.889971,
+      "avg": 2.4845233434666714,
+      "med": 2.070429
+    },
+    "stats_latency_ms": {
+      "avg": 13.664049172185424,
+      "med": 10.421279,
+      "p(95)": 31.911643,
+      "p(99)": 55.9609255,
+      "max": 80.766783
+    },
+    "human_redirects": 6750,
+    "bot_redirects": 750,
+    "stored_clicks": 7500,
+    "stored_human_clicks": 6750,
+    "stored_bot_clicks": 750,
+    "link_counter_delta": 6750,
+    "analytics_match": true,
+    "stats_reconciliation": [
+      {
+        "link_id": 1,
+        "api": [
+          0,
+          0,
+          13
+        ],
+        "database": [
+          0,
+          0,
+          13
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "api": [
+          13,
+          1,
+          0
+        ],
+        "database": [
+          13,
+          1,
+          0
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "api": [
+          11,
+          1,
+          0
+        ],
+        "database": [
+          11,
+          1,
+          0
+        ],
+        "match": true
+      }
+    ],
+    "settle_wait_s": 1.786874646000797,
+    "k6_exit_code": 0,
+    "thresholds_passed": true
+  },
+  {
+    "phase": "ramp",
+    "run": "run-3-500rps",
+    "target_rps": 500,
+    "duration_s": 30,
+    "stats_rps": 5,
+    "wall_seconds_including_container": 31.321074154999224,
+    "http_requests": 15151,
+    "redirects": 15001,
+    "measured_seconds": 30.004065463,
+    "completed_duration": true,
+    "redirect_rps": 499.9655802810698,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "latency_ms": {
+      "avg": 2.470567877208187,
+      "med": 1.642602,
+      "p(95)": 5.611731,
+      "p(99)": 11.828427,
+      "max": 162.047202
+    },
+    "stats_latency_ms": {
+      "med": 10.287182999999999,
+      "p(95)": 32.68236679999995,
+      "p(99)": 54.126570999999956,
+      "max": 179.333672,
+      "avg": 14.42771155333333
+    },
+    "human_redirects": 13500,
+    "bot_redirects": 1501,
+    "stored_clicks": 15001,
+    "stored_human_clicks": 13500,
+    "stored_bot_clicks": 1501,
+    "link_counter_delta": 13500,
+    "analytics_match": true,
+    "stats_reconciliation": [
+      {
+        "link_id": 1,
+        "api": [
+          0,
+          0,
+          29
+        ],
+        "database": [
+          0,
+          0,
+          29
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "api": [
+          28,
+          1,
+          0
+        ],
+        "database": [
+          28,
+          1,
+          0
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "api": [
+          26,
+          1,
+          0
+        ],
+        "database": [
+          26,
+          1,
+          0
+        ],
+        "match": true
+      }
+    ],
+    "settle_wait_s": 2.009672712003521,
+    "k6_exit_code": 0,
+    "thresholds_passed": true
+  },
+  {
+    "phase": "ramp",
+    "run": "run-4-1000rps",
+    "target_rps": 1000,
+    "duration_s": 30,
+    "stats_rps": 5,
+    "wall_seconds_including_container": 30.948321329000464,
+    "http_requests": 30152,
+    "redirects": 30001,
+    "measured_seconds": 30.009597527,
+    "completed_duration": true,
+    "redirect_rps": 999.7135074206755,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "latency_ms": {
+      "max": 23.996145,
+      "avg": 1.5444001192960306,
+      "med": 1.217174,
+      "p(95)": 3.435517,
+      "p(99)": 6.359615
+    },
+    "stats_latency_ms": {
+      "p(95)": 20.807098,
+      "p(99)": 26.251165999999998,
+      "max": 34.192458,
+      "avg": 9.582327304635763,
+      "med": 8.157679
+    },
+    "human_redirects": 27000,
+    "bot_redirects": 3001,
+    "stored_clicks": 30001,
+    "stored_human_clicks": 27000,
+    "stored_bot_clicks": 3001,
+    "link_counter_delta": 27000,
+    "analytics_match": true,
+    "stats_reconciliation": [
+      {
+        "link_id": 1,
+        "api": [
+          0,
+          0,
+          60
+        ],
+        "database": [
+          0,
+          0,
+          60
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "api": [
+          58,
+          1,
+          0
+        ],
+        "database": [
+          58,
+          1,
+          0
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "api": [
+          56,
+          1,
+          0
+        ],
+        "database": [
+          56,
+          1,
+          0
+        ],
+        "match": true
+      }
+    ],
+    "settle_wait_s": 2.1552631459999247,
+    "k6_exit_code": 0,
+    "thresholds_passed": true
+  },
+  {
+    "phase": "high",
+    "run": "run-1-2000rps",
+    "target_rps": 2000,
+    "duration_s": 30,
+    "stats_rps": 5,
+    "wall_seconds_including_container": 31.366570901001978,
+    "http_requests": 60121,
+    "redirects": 59970,
+    "measured_seconds": 30.004632112,
+    "completed_duration": true,
+    "redirect_rps": 1998.6913945868946,
+    "http_error_rate": 0,
+    "dropped_iterations": 31,
+    "latency_ms": {
+      "p(99)": 9.714421329999993,
+      "max": 192.801606,
+      "avg": 1.6389926592296151,
+      "med": 0.813832,
+      "p(95)": 3.4682356999999917
+    },
+    "stats_latency_ms": {
+      "max": 215.826188,
+      "avg": 8.611244483443713,
+      "med": 5.266984,
+      "p(95)": 19.758481,
+      "p(99)": 33.402096
+    },
+    "human_redirects": 53973,
+    "bot_redirects": 5997,
+    "stored_clicks": 59970,
+    "stored_human_clicks": 53973,
+    "stored_bot_clicks": 5997,
+    "link_counter_delta": 53973,
+    "analytics_match": true,
+    "stats_reconciliation": [
+      {
+        "link_id": 1,
+        "api": [
+          0,
+          0,
+          60
+        ],
+        "database": [
+          0,
+          0,
+          60
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "api": [
+          60,
+          1,
+          0
+        ],
+        "database": [
+          60,
+          1,
+          0
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "api": [
+          59,
+          1,
+          0
+        ],
+        "database": [
+          59,
+          1,
+          0
+        ],
+        "match": true
+      }
+    ],
+    "settle_wait_s": 1.716839365006308,
+    "k6_exit_code": 99,
+    "thresholds_passed": false
+  },
+  {
+    "phase": "high",
+    "run": "run-2-3200rps",
+    "target_rps": 3200,
+    "duration_s": 30,
+    "stats_rps": 5,
+    "wall_seconds_including_container": 31.270210049995512,
+    "http_requests": 96152,
+    "redirects": 96001,
+    "measured_seconds": 30.012205414,
+    "completed_duration": true,
+    "redirect_rps": 3198.7319384138877,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "latency_ms": {
+      "avg": 3.0266521732794844,
+      "med": 1.353871,
+      "p(95)": 11.424709,
+      "p(99)": 25.025044,
+      "max": 107.064268
+    },
+    "stats_latency_ms": {
+      "avg": 15.193325509933775,
+      "med": 8.511521,
+      "p(95)": 46.729064,
+      "p(99)": 97.517335,
+      "max": 112.602651
+    },
+    "human_redirects": 86400,
+    "bot_redirects": 9601,
+    "stored_clicks": 96001,
+    "stored_human_clicks": 86400,
+    "stored_bot_clicks": 9601,
+    "link_counter_delta": 86400,
+    "analytics_match": true,
+    "stats_reconciliation": [
+      {
+        "link_id": 1,
+        "api": [
+          0,
+          0,
+          157
+        ],
+        "database": [
+          0,
+          0,
+          157
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "api": [
+          156,
+          1,
+          0
+        ],
+        "database": [
+          156,
+          1,
+          0
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "api": [
+          155,
+          1,
+          0
+        ],
+        "database": [
+          155,
+          1,
+          0
+        ],
+        "match": true
+      }
+    ],
+    "settle_wait_s": 1.7026019200056908,
+    "k6_exit_code": 0,
+    "thresholds_passed": true
+  },
+  {
+    "phase": "sustained",
+    "run": "run-1-3200rps",
+    "target_rps": 3200,
+    "duration_s": 120,
+    "stats_rps": 5,
+    "wall_seconds_including_container": 124.45400469299784,
+    "http_requests": 382745,
+    "redirects": 382145,
+    "measured_seconds": 120.003918135,
+    "completed_duration": true,
+    "redirect_rps": 3184.4376911935565,
+    "http_error_rate": 0,
+    "dropped_iterations": 1852,
+    "latency_ms": {
+      "med": 1.673754,
+      "p(95)": 17.516433599999985,
+      "p(99)": 51.16350451999998,
+      "max": 585.365784,
+      "avg": 4.780228382365388
+    },
+    "stats_latency_ms": {
+      "avg": 22.490307266666672,
+      "med": 11.506912,
+      "p(95)": 66.2170512,
+      "p(99)": 209.34462747999993,
+      "max": 550.520997
+    },
+    "human_redirects": 343930,
+    "bot_redirects": 38215,
+    "stored_clicks": 382145,
+    "stored_human_clicks": 343930,
+    "stored_bot_clicks": 38215,
+    "link_counter_delta": 343930,
+    "analytics_match": true,
+    "stats_reconciliation": [
+      {
+        "link_id": 1,
+        "api": [
+          0,
+          0,
+          383
+        ],
+        "database": [
+          0,
+          0,
+          383
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "api": [
+          383,
+          1,
+          0
+        ],
+        "database": [
+          383,
+          1,
+          0
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "api": [
+          382,
+          1,
+          0
+        ],
+        "database": [
+          382,
+          1,
+          0
+        ],
+        "match": true
+      }
+    ],
+    "settle_wait_s": 2.024419670997304,
+    "k6_exit_code": 99,
+    "thresholds_passed": false
+  },
+  {
+    "phase": "confirmed",
+    "run": "run-1-1000rps",
+    "target_rps": 1000,
+    "duration_s": 120,
+    "stats_rps": 5,
+    "wall_seconds_including_container": 123.49975237699982,
+    "http_requests": 120601,
+    "redirects": 120000,
+    "measured_seconds": 120.004588185,
+    "completed_duration": true,
+    "redirect_rps": 999.9617665868498,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "latency_ms": {
+      "max": 124.229193,
+      "avg": 1.7552862065499795,
+      "med": 1.1712525,
+      "p(95)": 4.007721699999996,
+      "p(99)": 12.195094759999932
+    },
+    "stats_latency_ms": {
+      "med": 7.353879,
+      "p(95)": 21.847733,
+      "p(99)": 51.153556,
+      "max": 142.585393,
+      "avg": 9.978139846921799
+    },
+    "human_redirects": 108000,
+    "bot_redirects": 12000,
+    "stored_clicks": 120000,
+    "stored_human_clicks": 108000,
+    "stored_bot_clicks": 12000,
+    "link_counter_delta": 108000,
+    "analytics_match": true,
+    "stats_reconciliation": [
+      {
+        "link_id": 1,
+        "api": [
+          0,
+          0,
+          120
+        ],
+        "database": [
+          0,
+          0,
+          120
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "api": [
+          120,
+          1,
+          0
+        ],
+        "database": [
+          120,
+          1,
+          0
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "api": [
+          120,
+          1,
+          0
+        ],
+        "database": [
+          120,
+          1,
+          0
+        ],
+        "match": true
+      }
+    ],
+    "settle_wait_s": 1.7030692439948325,
+    "k6_exit_code": 0,
+    "thresholds_passed": true
+  }
+]

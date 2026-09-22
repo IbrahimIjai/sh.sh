@@ -1,0 +1,82 @@
+{
+  "ramp": {
+    "api-1": {
+      "samples": 28,
+      "peak_cpu_percent": 62.84,
+      "peak_memory_mib": 23.35,
+      "peak_pids": 10
+    },
+    "db-1": {
+      "samples": 28,
+      "peak_cpu_percent": 95.64,
+      "peak_memory_mib": 119.1,
+      "peak_pids": 26
+    },
+    "k6": {
+      "samples": 24,
+      "peak_cpu_percent": 74.9,
+      "peak_memory_mib": 104.0,
+      "peak_pids": 15
+    }
+  },
+  "high": {
+    "api-1": {
+      "samples": 14,
+      "peak_cpu_percent": 99.32,
+      "peak_memory_mib": 22.79,
+      "peak_pids": 12
+    },
+    "db-1": {
+      "samples": 14,
+      "peak_cpu_percent": 190.12,
+      "peak_memory_mib": 144.6,
+      "peak_pids": 32
+    },
+    "k6": {
+      "samples": 12,
+      "peak_cpu_percent": 137.83,
+      "peak_memory_mib": 101.4,
+      "peak_pids": 16
+    }
+  },
+  "sustained": {
+    "api-1": {
+      "samples": 25,
+      "peak_cpu_percent": 98.73,
+      "peak_memory_mib": 23.52,
+      "peak_pids": 11
+    },
+    "db-1": {
+      "samples": 25,
+      "peak_cpu_percent": 198.28,
+      "peak_memory_mib": 220.3,
+      "peak_pids": 33
+    },
+    "k6": {
+      "samples": 24,
+      "peak_cpu_percent": 123.94,
+      "peak_memory_mib": 156.4,
+      "peak_pids": 20
+    }
+  },
+  "confirmed": {
+    "api-1": {
+      "samples": 25,
+      "peak_cpu_percent": 63.74,
+      "peak_memory_mib": 22.86,
+      "peak_pids": 11
+    },
+    "db-1": {
+      "samples": 25,
+      "peak_cpu_percent": 110.33,
+      "peak_memory_mib": 132.6,
+      "peak_pids": 32
+    },
+    "k6": {
+      "samples": 24,
+      "peak_cpu_percent": 69.98,
+      "peak_memory_mib": 106.3,
+      "peak_pids": 15
+    }
+  }
+}

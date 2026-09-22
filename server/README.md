@@ -43,6 +43,14 @@ available: set `EMAIL_PROVIDER=transend` and fill in `TRANSEND_API_KEY` and
 `TRANSEND_FROM` to switch back. If the selected provider's API key or sender is
 missing, magic links are logged instead of emailed.
 
+The database pool defaults to `DB_MAX_OPEN_CONNS=20` and `DB_MAX_IDLE_CONNS=20`.
+These limits apply per API process and are shared by auth, redirects, and analytics.
+When the pool is busy, queries wait for a connection until their context is canceled.
+Idle connections are reused; unused ones expire after 5 minutes, and connections
+are recycled after 30 minutes. Invalid pool settings stop startup with an error.
+Across replicas, keep the combined connection budget below PostgreSQL's limit,
+leaving room for migrations and administration.
+
 ### 3. Start the database
 
 ```sh
@@ -152,6 +160,22 @@ UTM source/medium/campaign, device, browser, OS, country, city, and whether it w
 Link-preview bots (WhatsApp, Slack, X, Discord, ...) and scripts such as `curl` still get redirected,
 but they don't count as clicks; use a browser, or `curl -A` with a browser user agent, when testing.
 
+Apply migration `00006_click_batch_retries.sql` before starting the updated API.
+Failed batches stay in memory and retry with exponential backoff and jitter
+(initial delay 50–100 ms, capped at 5 seconds; each write attempt has a 10-second
+timeout). Each batch keeps the same random ID on every attempt. Its `click_batches`
+receipt, click rows, and human counters commit atomically, so an acknowledgement
+lost after commit cannot cause double counting. Click timestamps reflect the
+original request, including when retries cross midnight. Receipts are retained;
+do not delete them while a batch could still be retried.
+
+This is a bounded in-memory queue, not durable delivery: a crash can lose pending
+clicks, and a full 10,000-click queue drops new analytics events without blocking
+redirects. A failed batch holds up later batches until it succeeds or shutdown
+expires, so persistent data/schema errors need intervention. Shutdown drains
+within the existing 15-second server shutdown budget; expiry cancels pending
+writes and reports an error.
+
 No raw IP or full referrer URL is stored. Visitors are counted with a keyed hash of IP + user agent
 that changes every UTC day, so visits can't be linked across days.
 
@@ -172,6 +196,11 @@ fail with 400. If Web Risk is unreachable, links are still created.
 
 ```sh
 go test -race ./...                 # unit tests (no database needed)
+
+# Optional PostgreSQL integration tests. Creates and removes an isolated schema;
+# the test user needs permission to create schemas. Use a local test database.
+TEST_DATABASE_URL='postgres://postgres:postgres@localhost:5434/myapp?sslmode=disable' \
+  go test -race -count=1 ./internal/analytics ./internal/database
 
 goose up                            # apply new migrations to the local database
 docker compose up --build -d        # run the stack

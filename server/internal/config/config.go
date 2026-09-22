@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -11,6 +13,8 @@ type Config struct {
 
 	BaseURL           string
 	DatabaseURL       string
+	DBMaxOpenConns    int
+	DBMaxIdleConns    int
 	LimenSecret       string
 	GoogleID          string
 	GoogleSecret      string
@@ -34,7 +38,19 @@ type Config struct {
 	WebRiskAPIKey string
 }
 
-func Load() Config {
+func Load() (Config, error) {
+	maxOpen, err := envInt("DB_MAX_OPEN_CONNS", 20)
+	if err != nil {
+		return Config{}, err
+	}
+	maxIdle, err := envInt("DB_MAX_IDLE_CONNS", min(20, maxOpen))
+	if err != nil {
+		return Config{}, err
+	}
+	if maxOpen < 1 || maxIdle < 0 || maxIdle > maxOpen {
+		return Config{}, fmt.Errorf("DB_MAX_OPEN_CONNS must be positive; DB_MAX_IDLE_CONNS must be between 0 and DB_MAX_OPEN_CONNS")
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -70,6 +86,8 @@ func Load() Config {
 		Env:                   env,
 		BaseURL:               baseURL,
 		DatabaseURL:           os.Getenv("DATABASE_URL"),
+		DBMaxOpenConns:        maxOpen,
+		DBMaxIdleConns:        maxIdle,
 		LimenSecret:           os.Getenv("LIMEN_SECRET"),
 		GoogleID:              os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleSecret:          os.Getenv("GOOGLE_CLIENT_SECRET"),
@@ -84,7 +102,19 @@ func Load() Config {
 		TrustedPlatform:       strings.ToLower(strings.TrimSpace(os.Getenv("TRUSTED_PLATFORM"))),
 		GeoIPDBPath:           os.Getenv("GEOIP_DB_PATH"),
 		WebRiskAPIKey:         os.Getenv("WEB_RISK_API_KEY"),
+	}, nil
+}
+
+func envInt(name string, fallback int) (int, error) {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return fallback, nil
 	}
+	n, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be an integer", name)
+	}
+	return n, nil
 }
 
 func splitList(value string) []string {
