@@ -1,4 +1,15 @@
-
-# local env
+# Env files hold real keys; only .env.example is committed.
 .env
-server/.env
+.env.*
+!.env.example
+
+# Build output
+server/bin/
+server/tmp/
+*.test
+coverage.out
+
+# OS and editor files
+.DS_Store
+.idea/
+*.swp
