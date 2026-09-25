@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Local notes, not pushed
+/docs/
+
 # Build output
 server/bin/
 server/tmp/

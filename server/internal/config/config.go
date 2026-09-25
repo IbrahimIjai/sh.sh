@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -15,6 +16,8 @@ type Config struct {
 	DatabaseURL       string
 	DBMaxOpenConns    int
 	DBMaxIdleConns    int
+	LinkCacheSize     int
+	LinkCacheTTL      time.Duration
 	LimenSecret       string
 	GoogleID          string
 	GoogleSecret      string
@@ -49,6 +52,17 @@ func Load() (Config, error) {
 	}
 	if maxOpen < 1 || maxIdle < 0 || maxIdle > maxOpen {
 		return Config{}, fmt.Errorf("DB_MAX_OPEN_CONNS must be positive; DB_MAX_IDLE_CONNS must be between 0 and DB_MAX_OPEN_CONNS")
+	}
+	cacheSize, err := envInt("LINK_CACHE_SIZE", 100_000)
+	if err != nil {
+		return Config{}, err
+	}
+	cacheTTL, err := envDuration("LINK_CACHE_TTL", time.Minute)
+	if err != nil {
+		return Config{}, err
+	}
+	if cacheSize < 0 || cacheTTL <= 0 {
+		return Config{}, fmt.Errorf("LINK_CACHE_SIZE must be 0 (off) or more; LINK_CACHE_TTL must be positive")
 	}
 
 	port := os.Getenv("PORT")
@@ -88,6 +102,8 @@ func Load() (Config, error) {
 		DatabaseURL:           os.Getenv("DATABASE_URL"),
 		DBMaxOpenConns:        maxOpen,
 		DBMaxIdleConns:        maxIdle,
+		LinkCacheSize:         cacheSize,
+		LinkCacheTTL:          cacheTTL,
 		LimenSecret:           os.Getenv("LIMEN_SECRET"),
 		GoogleID:              os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleSecret:          os.Getenv("GOOGLE_CLIENT_SECRET"),
@@ -115,6 +131,18 @@ func envInt(name string, fallback int) (int, error) {
 		return 0, fmt.Errorf("%s must be an integer", name)
 	}
 	return n, nil
+}
+
+func envDuration(name string, fallback time.Duration) (time.Duration, error) {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return fallback, nil
+	}
+	d, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a duration such as 60s", name)
+	}
+	return d, nil
 }
 
 func splitList(value string) []string {

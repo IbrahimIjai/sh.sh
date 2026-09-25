@@ -16,7 +16,8 @@ func (h *LinkHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if _, ok := h.ownedLink(c, userID, id); !ok {
+	link, ok := h.ownedLink(c, userID, id)
+	if !ok {
 		return
 	}
 
@@ -24,6 +25,7 @@ func (h *LinkHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not delete link"})
 		return
 	}
+	h.redirects.Forget(link.Slug)
 
 	c.Status(http.StatusNoContent)
 }

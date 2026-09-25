@@ -82,9 +82,12 @@ func main() {
 			Cloudflare: cfg.TrustedPlatform == "cloudflare",
 			OwnHost:    baseHost,
 		}),
-		Clicks: clicks,
-		Safety: urlChecker,
+		Clicks:    clicks,
+		Safety:    urlChecker,
+		CacheSize: cfg.LinkCacheSize,
+		CacheTTL:  cfg.LinkCacheTTL,
 	})
+	log.Printf("link cache: size=%d ttl=%s", cfg.LinkCacheSize, cfg.LinkCacheTTL)
 
 	if cfg.Env == "production" && len(cfg.TrustedProxies) == 0 && cfg.TrustedPlatform == "" {
 		log.Println("warning: TRUSTED_PROXIES and TRUSTED_PLATFORM are empty, so client IPs come from the TCP connection; " +

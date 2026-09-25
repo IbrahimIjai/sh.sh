@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ibrahimijai/sh.sh/internal/analytics"
 	"github.com/ibrahimijai/sh.sh/internal/auth"
+	"github.com/ibrahimijai/sh.sh/internal/cache"
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 )
 
@@ -31,6 +32,8 @@ type fakeQueries struct {
 	mu    sync.Mutex
 	links []db.Link
 	now   time.Time
+
+	slugLookups int
 
 	breakdown []db.ListClickBreakdownByLinkRow
 	daily     []db.ListDailyClicksByLinkRow
@@ -84,12 +87,25 @@ func (f *fakeQueries) CountLinksByCreatorSince(_ context.Context, arg db.CountLi
 func (f *fakeQueries) GetLinkBySlug(_ context.Context, slug string) (db.Link, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.slugLookups++
 	for _, l := range f.links {
 		if l.Slug == slug && l.IsActive && !l.DeletedAt.Valid {
 			return l, nil
 		}
 	}
 	return db.Link{}, sql.ErrNoRows
+}
+
+func (f *fakeQueries) SoftDeleteLink(_ context.Context, id int64) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for i := range f.links {
+		if f.links[i].ID == id {
+			f.links[i].DeletedAt = sql.NullTime{Time: f.now, Valid: true}
+			f.links[i].IsActive = false
+		}
+	}
+	return nil
 }
 
 func (f *fakeQueries) GetLinkByID(_ context.Context, id int64) (db.Link, error) {
@@ -201,6 +217,7 @@ func (s *testServer) do(t *testing.T, userID int64, method, path string, body an
 	r.POST("/api/v1/links/lookup", s.handler.Lookup)
 	r.POST("/api/v1/links/claim", asUser, s.handler.Claim)
 	r.GET("/api/v1/links/:id/stats", asUser, s.handler.Stats)
+	r.DELETE("/api/v1/links/:id", asUser, s.handler.Delete)
 	r.NoRoute(s.handler.Redirect)
 
 	var reader *bytes.Reader
@@ -365,6 +382,53 @@ func TestRedirectRecordsClickAndForwardsUTM(t *testing.T) {
 
 	if w := s.do(t, 0, "GET", "/missing", nil, nil); w.Code != http.StatusNotFound {
 		t.Errorf("unknown slug: status = %d, want 404", w.Code)
+	}
+}
+
+func TestRedirectCache(t *testing.T) {
+	s := newTestServer(nil)
+	s.handler.redirects = cache.New[redirectLink](100, time.Minute, 5*time.Second)
+
+	if w := s.do(t, 0, "GET", "/custom", nil, nil); w.Code != http.StatusNotFound {
+		t.Fatalf("before create: status = %d, want 404", w.Code)
+	}
+	created := decode[linkResponse](t, s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com", "slug": "custom"}, nil))
+
+	lookups := s.queries.slugLookups
+	for range 3 {
+		if w := s.do(t, 0, "GET", "/custom", nil, nil); w.Code != http.StatusFound {
+			t.Fatalf("after create: status = %d, want 302", w.Code)
+		}
+	}
+	if got := s.queries.slugLookups - lookups; got != 1 {
+		t.Errorf("3 redirects made %d slug lookups, want 1", got)
+	}
+
+	if w := s.do(t, 1, "DELETE", "/api/v1/links/"+strconv.FormatInt(created.ID, 10), nil, nil); w.Code != http.StatusNoContent {
+		t.Fatalf("delete: status = %d, want 204", w.Code)
+	}
+	if w := s.do(t, 0, "GET", "/custom", nil, nil); w.Code != http.StatusNotFound {
+		t.Errorf("after delete: status = %d, want 404", w.Code)
+	}
+}
+
+func TestRedirectCacheRespectsExpiry(t *testing.T) {
+	s := newTestServer(nil)
+	s.handler.redirects = cache.New[redirectLink](100, time.Minute, 5*time.Second)
+	created := decode[linkResponse](t, s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com"}, nil))
+	s.queries.links[0].ExpiresAt = sql.NullTime{Time: s.queries.now.Add(time.Minute), Valid: true}
+
+	if w := s.do(t, 0, "GET", "/"+created.Slug, nil, nil); w.Code != http.StatusFound {
+		t.Fatalf("before expiry: status = %d, want 302", w.Code)
+	}
+	lookups := s.queries.slugLookups
+	later := s.queries.now.Add(2 * time.Minute)
+	s.handler.now = func() time.Time { return later }
+	if w := s.do(t, 0, "GET", "/"+created.Slug, nil, nil); w.Code != http.StatusNotFound {
+		t.Errorf("after expiry: status = %d, want 404", w.Code)
+	}
+	if s.queries.slugLookups != lookups {
+		t.Error("expected the expired link to be rejected from the cache")
 	}
 }
 

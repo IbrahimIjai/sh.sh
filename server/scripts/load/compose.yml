@@ -24,6 +24,7 @@ services:
       DATABASE_URL: postgres://postgres:local-benchmark-only@db:5432/benchmark?sslmode=disable
       LIMEN_SECRET: "0123456789abcdef0123456789abcdef"
       EMAIL_PROVIDER: resend
+      LINK_CACHE_SIZE: ${LINK_CACHE_SIZE:-100000}
     logging:
       driver: json-file
       options:

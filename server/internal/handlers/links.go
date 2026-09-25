@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ibrahimijai/sh.sh/internal/analytics"
+	"github.com/ibrahimijai/sh.sh/internal/cache"
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 )
 
@@ -30,7 +31,9 @@ type LinkConfig struct {
 	Collector *analytics.Collector
 	Clicks    ClickRecorder
 	// Safety is optional; without it new links aren't checked.
-	Safety URLChecker
+	Safety    URLChecker
+	CacheSize int
+	CacheTTL  time.Duration
 }
 
 type LinkHandler struct {
@@ -41,6 +44,7 @@ type LinkHandler struct {
 	collector *analytics.Collector
 	clicks    ClickRecorder
 	safety    URLChecker
+	redirects *cache.TTL[redirectLink]
 	now       func() time.Time
 }
 
@@ -59,6 +63,7 @@ func NewLinkHandler(queries db.Querier, cfg LinkConfig) *LinkHandler {
 		collector: cfg.Collector,
 		clicks:    cfg.Clicks,
 		safety:    cfg.Safety,
+		redirects: cache.New[redirectLink](cfg.CacheSize, cfg.CacheTTL, min(cfg.CacheTTL, 5*time.Second)),
 		now:       time.Now,
 	}
 }

@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,12 +23,14 @@ func (h *LinkHandler) Redirect(c *gin.Context) {
 		return
 	}
 
-	link, err := h.queries.GetLinkBySlug(c.Request.Context(), slug)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	link, found, err := h.redirects.Get(c.Request.Context(), slug, h.loadRedirect)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not load link"})
 		return
 	}
-	found := err == nil
+	if found && link.ExpiresAt.Valid && !h.now().Before(link.ExpiresAt.Time) {
+		found = false
+	}
 
 	if preview {
 		h.renderPreview(c, slug, link, found)
@@ -40,7 +44,34 @@ func (h *LinkHandler) Redirect(c *gin.Context) {
 	h.clicks.Record(h.collector.Collect(c.Request, c.ClientIP(), link.ID))
 
 	// 302, not 301: browsers cache a 301 and later clicks would never reach us to be counted.
-	c.Redirect(http.StatusFound, withForwardedParams(link.TargetUrl, c.Request.URL.Query()))
+	c.Redirect(http.StatusFound, withForwardedParams(link.TargetURL, c.Request.URL.Query()))
+}
+
+type redirectLink struct {
+	ID        int64
+	Slug      string
+	TargetURL string
+	Title     string
+	CreatedAt time.Time
+	ExpiresAt sql.NullTime
+}
+
+func (h *LinkHandler) loadRedirect(ctx context.Context, slug string) (redirectLink, bool, error) {
+	link, err := h.queries.GetLinkBySlug(ctx, slug)
+	if errors.Is(err, sql.ErrNoRows) {
+		return redirectLink{}, false, nil
+	}
+	if err != nil {
+		return redirectLink{}, false, err
+	}
+	return redirectLink{
+		ID:        link.ID,
+		Slug:      link.Slug,
+		TargetURL: link.TargetUrl,
+		Title:     link.Title.String,
+		CreatedAt: link.CreatedAt,
+		ExpiresAt: link.ExpiresAt,
+	}, true, nil
 }
 
 // redirectSlug reads the slug from GET /{slug}, or /{slug}+ for the preview page.

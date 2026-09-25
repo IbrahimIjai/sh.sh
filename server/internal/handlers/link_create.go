@@ -113,6 +113,7 @@ func (h *LinkHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create link"})
 		return
 	}
+	h.redirects.Forget(link.Slug)
 
 	resp := h.linkResponse(link)
 	resp.ClaimToken = claimToken

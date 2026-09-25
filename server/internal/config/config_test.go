@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestLoadEmailConfig(t *testing.T) {
 	t.Setenv("RESEND_API_KEY", "resend-test-key")
@@ -61,6 +64,34 @@ func TestLoadDatabasePoolConfig(t *testing.T) {
 			}
 			if err == nil && (cfg.DBMaxOpenConns != tt.wantOpen || cfg.DBMaxIdleConns != tt.wantIdle) {
 				t.Fatalf("pool = %d/%d, want %d/%d", cfg.DBMaxOpenConns, cfg.DBMaxIdleConns, tt.wantOpen, tt.wantIdle)
+			}
+		})
+	}
+}
+
+func TestLoadLinkCacheConfig(t *testing.T) {
+	for _, tt := range []struct {
+		name, size, ttl string
+		wantSize        int
+		wantTTL         time.Duration
+		wantErr         bool
+	}{
+		{"defaults", "", "", 100_000, time.Minute, false},
+		{"explicit", "500", "30s", 500, 30 * time.Second, false},
+		{"disabled", "0", "", 0, time.Minute, false},
+		{"negative size", "-1", "", 0, 0, true},
+		{"zero ttl", "", "0s", 0, 0, true},
+		{"malformed ttl", "", "soon", 0, 0, true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("LINK_CACHE_SIZE", tt.size)
+			t.Setenv("LINK_CACHE_TTL", tt.ttl)
+			cfg, err := Load()
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Load error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err == nil && (cfg.LinkCacheSize != tt.wantSize || cfg.LinkCacheTTL != tt.wantTTL) {
+				t.Fatalf("cache = %d/%s, want %d/%s", cfg.LinkCacheSize, cfg.LinkCacheTTL, tt.wantSize, tt.wantTTL)
 			}
 		})
 	}

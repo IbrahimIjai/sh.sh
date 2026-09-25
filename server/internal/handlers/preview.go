@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	"github.com/gin-gonic/gin"
-	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 )
 
 type previewData struct {
@@ -23,16 +22,16 @@ type previewData struct {
 
 // renderPreview serves /{slug}+ : where a short link goes, without redirecting. "Continue" goes
 // through the normal redirect, so the visit is still counted.
-func (h *LinkHandler) renderPreview(c *gin.Context, slug string, link db.Link, found bool) {
+func (h *LinkHandler) renderPreview(c *gin.Context, slug string, link redirectLink, found bool) {
 	data := previewData{Found: found, ShortURL: h.shortURL(slug)}
 	status := http.StatusNotFound
 	if found {
 		status = http.StatusOK
-		data.TargetURL = link.TargetUrl
-		if parsed, err := url.Parse(link.TargetUrl); err == nil {
+		data.TargetURL = link.TargetURL
+		if parsed, err := url.Parse(link.TargetURL); err == nil {
 			data.TargetHost = parsed.Hostname()
 		}
-		data.Title = link.Title.String
+		data.Title = link.Title
 		data.CreatedAt = link.CreatedAt.UTC().Format("2 January 2006")
 		data.ContinueURL = "/" + link.Slug
 		if query := c.Request.URL.RawQuery; query != "" {
