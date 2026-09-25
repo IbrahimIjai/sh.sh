@@ -9,7 +9,7 @@ import (
 	"github.com/ibrahimijai/sh.sh/internal/handlers"
 )
 
-func SetupRouter(cfg config.Config, authServer *auth.Server, linkHandler *handlers.LinkHandler, domainHandler *handlers.DomainHandler) (*gin.Engine, error) {
+func SetupRouter(cfg config.Config, db handlers.Pinger, authServer *auth.Server, linkHandler *handlers.LinkHandler, domainHandler *handlers.DomainHandler) (*gin.Engine, error) {
 	r := gin.New()
 
 	// ClientIP() feeds visitor hashes, geo lookups and the anonymous rate limit. Gin trusts
@@ -29,8 +29,8 @@ func SetupRouter(cfg config.Config, authServer *auth.Server, linkHandler *handle
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
-	// Health route
 	r.GET("/health", handlers.HealthCheck)
+	r.GET("/health/ready", handlers.Ready(db))
 
 	if authServer != nil && authServer.Handler() != nil {
 		r.Any("/auth", gin.WrapH(authServer.Handler()))
@@ -40,8 +40,6 @@ func SetupRouter(cfg config.Config, authServer *auth.Server, linkHandler *handle
 	// API v1 routes
 	v1 := r.Group("/api/v1")
 	{
-		v1.POST("/users", handlers.CreateUser)
-
 		// Anyone can shorten a link; anonymous links come back with a claim token.
 		v1.POST("/links", authServer.OptionalSession(), linkHandler.Create)
 		v1.POST("/links/lookup", linkHandler.Lookup)

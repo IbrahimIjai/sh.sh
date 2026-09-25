@@ -19,11 +19,15 @@ func New(cfg config.Config, db *sql.DB) (*Server, error) {
 	if cfg.LimenSecret == "" {
 		return nil, fmt.Errorf("auth enabled but LIMEN_SECRET is not set")
 	}
+	emailSender := buildEmailSender(cfg)
+	if emailSender == nil && cfg.Env == "production" {
+		return nil, fmt.Errorf("magic-link email is not configured; production requires it")
+	}
 
 	limenAuth, err := limen.New(&limen.Config{
 		BaseURL:  cfg.BaseURL,
 		Database: sqladapter.NewPostgreSQL(db),
-		Plugins:  buildPlugins(cfg),
+		Plugins:  buildPlugins(cfg, emailSender),
 		Secret:   []byte(cfg.LimenSecret),
 		CLI:      &limen.CLIConfig{Enabled: cfg.Env != "production"},
 		HTTP:     limen.NewDefaultHTTPConfig(limen.WithHTTPCookieSecure(cfg.Env == "production")),

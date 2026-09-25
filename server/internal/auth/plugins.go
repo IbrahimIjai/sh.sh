@@ -12,9 +12,9 @@ import (
 	oauthgoogle "github.com/thecodearcher/limen/plugins/oauth-google"
 )
 
-func buildPlugins(cfg config.Config) []limen.Plugin {
+func buildPlugins(cfg config.Config, emailSender email.Sender) []limen.Plugin {
 	plugins := []limen.Plugin{
-		magiclink.New(magiclink.WithSendMagicLink(buildMagicLinkSender(cfg))),
+		magiclink.New(magiclink.WithSendMagicLink(buildMagicLinkSender(cfg, emailSender))),
 	}
 
 	if cfg.GoogleID == "" || cfg.GoogleSecret == "" {
@@ -49,9 +49,7 @@ func buildEmailSender(cfg config.Config) email.Sender {
 	return nil
 }
 
-func buildMagicLinkSender(cfg config.Config) func(magiclink.MagicLinkMessage) {
-	emailSender := buildEmailSender(cfg)
-
+func buildMagicLinkSender(cfg config.Config, emailSender email.Sender) func(magiclink.MagicLinkMessage) {
 	return func(msg magiclink.MagicLinkMessage) {
 		if emailSender == nil {
 			log.Printf("magic link for %s: %s", msg.Email, msg.URL)

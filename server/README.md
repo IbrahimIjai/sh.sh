@@ -111,7 +111,12 @@ Or build a binary:
 go build -o bin/api ./cmd/api && ./bin/api
 ```
 
-The server listens on `http://localhost:8080` and exposes a health check at `GET /health`.
+The server listens on `http://localhost:8080`. `GET /health` reports that the process is up
+(use it for liveness), and `GET /health/ready` also checks the database (use it for readiness,
+so a replica that can't reach Postgres stops receiving traffic without being restarted).
+
+With `APP_ENV=production`, the API refuses to start unless magic-link email is configured;
+elsewhere, magic links are logged instead of emailed.
 
 ### Run everything in Docker
 

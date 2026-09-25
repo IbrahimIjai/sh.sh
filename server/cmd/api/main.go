@@ -86,7 +86,12 @@ func main() {
 		Safety: urlChecker,
 	})
 
-	r, err := router.SetupRouter(cfg, authServer, linkHandler, handlers.NewDomainHandler(queries))
+	if cfg.Env == "production" && len(cfg.TrustedProxies) == 0 && cfg.TrustedPlatform == "" {
+		log.Println("warning: TRUSTED_PROXIES and TRUSTED_PLATFORM are empty, so client IPs come from the TCP connection; " +
+			"behind a load balancer every visitor shares its IP, which breaks the anonymous rate limit and unique-visitor counts")
+	}
+
+	r, err := router.SetupRouter(cfg, conn, authServer, linkHandler, handlers.NewDomainHandler(queries))
 	if err != nil {
 		log.Fatalf("failed to set up router: %v", err)
 	}

@@ -8,6 +8,13 @@ import (
 	"github.com/ibrahimijai/sh.sh/internal/email"
 )
 
+func TestNewRequiresEmailInProduction(t *testing.T) {
+	cfg := config.Config{Env: "production", LimenSecret: "test-secret", EmailProvider: "resend"}
+	if _, err := New(cfg, nil); err == nil {
+		t.Fatal("New succeeded in production without an email sender; magic links would be logged")
+	}
+}
+
 func TestBuildEmailSender(t *testing.T) {
 	for _, tt := range []struct {
 		name     string
