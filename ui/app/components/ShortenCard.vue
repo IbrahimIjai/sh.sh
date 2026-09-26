@@ -6,6 +6,7 @@ const MAX_URL_LENGTH = 2048
 const { copy, copied, isSupported: canCopy } = useClipboard({ copiedDuring: 2000, legacy: true })
 const { data: user } = useCurrentUser()
 const createLink = useCreateLink()
+const history = useLinkHistory()
 
 const longUrl = ref('')
 const error = ref('')
@@ -57,6 +58,7 @@ function shorten() {
   createLink.mutate(target, {
     onSuccess: async (created) => {
       link.value = created
+      history.remember({ short_url: created.short_url, target_url: created.target_url, created_at: created.created_at })
       toast.success('That link got a haircut.')
       await nextTick()
       copyButton.value?.$el.focus()
@@ -78,12 +80,8 @@ function shorten() {
 
 async function copyLink() {
   if (!link.value) return
-  try {
-    await copy(link.value.short_url)
-  } catch {
-    // Reported below: copied stays false.
-  }
-  if (copied.value) toast.success('Copied. Go be useful.')
+  const ok = await copy(link.value.short_url).then(() => copied.value, () => false)
+  if (ok) toast.success('Copied. Go be useful.')
   else toast.error('Copy did not work. Select the link and copy it.')
 }
 
@@ -129,7 +127,7 @@ watch(longUrl, () => {
           :readonly="createLink.isPending.value"
           :aria-invalid="error ? 'true' : undefined"
           aria-describedby="shorten-note"
-          class="h-12 min-w-0 flex-1 rounded-lg bg-transparent px-3 text-base text-highlighted outline-none placeholder:text-dimmed"
+          class="h-12 min-w-0 rounded-lg bg-transparent px-3 text-base text-highlighted outline-none placeholder:text-dimmed sm:flex-1"
         >
         <UButton
           type="submit"
@@ -151,7 +149,7 @@ watch(longUrl, () => {
             :href="link.short_url"
             target="_blank"
             rel="noopener"
-            class="flex h-12 min-w-0 flex-1 items-center rounded-lg bg-muted px-3 text-base font-medium text-highlighted outline-none focus-visible:ring-3 focus-visible:ring-(--ds-ink)/15"
+            class="flex h-12 min-w-0 items-center rounded-lg bg-muted px-3 text-base font-medium text-highlighted outline-none focus-visible:ring-3 focus-visible:ring-(--ds-ink)/15 sm:flex-1"
           >
             <span class="truncate">{{ displayUrl }}</span>
           </a>
@@ -175,7 +173,7 @@ watch(longUrl, () => {
       </div>
     </div>
 
-    <div class="mt-3 flex min-h-8 items-center justify-center px-1 text-[13px] sm:justify-between">
+    <div class="mt-3 flex min-h-8 flex-wrap items-center justify-center gap-x-4 gap-y-1 px-1 text-[13px] sm:justify-between">
       <p
         v-if="!link"
         id="shorten-note"
@@ -188,11 +186,17 @@ watch(longUrl, () => {
         v-else
         variant="link"
         size="sm"
-        class="px-0 text-[13px] text-toned hover:text-highlighted sm:ms-auto"
+        class="px-0 text-[13px] text-toned hover:text-highlighted"
         @click="reset"
       >
         Shorten another
       </UButton>
+      <div
+        v-if="history.links.value.length"
+        class="sm:ms-auto"
+      >
+        <LinkHistoryDrawer />
+      </div>
     </div>
   </div>
 </template>

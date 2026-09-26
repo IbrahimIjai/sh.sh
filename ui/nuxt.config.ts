@@ -1,4 +1,3 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
@@ -15,7 +14,8 @@ export default defineNuxtConfig({
 
   colorMode: {
     preference: 'system',
-    fallback: 'dark'
+    fallback: 'dark',
+    disableTransition: true
   },
 
   runtimeConfig: {

@@ -51,6 +51,7 @@ export function useLogout() {
     mutationFn: () => api('/auth/signout', { method: 'POST', body: {} }),
     onSuccess: () => {
       queryClient.setQueryData(ME, null)
+      queryClient.removeQueries({ queryKey: ACCOUNT_LINKS })
       toast('Logged out.')
     },
     onError: () => {
@@ -61,7 +62,9 @@ export function useLogout() {
 
 export function useClaimAnonymousLinks() {
   const api = useApi()
+  const queryClient = useQueryClient()
   const { data: user } = useCurrentUser()
+  const history = useLinkHistory()
   const claim = useMutation({
     mutationFn: (tokens: string[]) => api<{ claimed: unknown[] }>('/api/v1/links/claim', {
       method: 'POST',
@@ -69,13 +72,17 @@ export function useClaimAnonymousLinks() {
     }),
     onSuccess: ({ claimed }) => {
       clearClaimTokens()
+      history.clearLocal()
+      queryClient.invalidateQueries({ queryKey: ACCOUNT_LINKS })
       if (claimed.length === 1) toast.success('1 earlier link added to your account.')
       else if (claimed.length > 1) toast.success(`${claimed.length} earlier links added to your account.`)
     }
   })
 
   watch(user, (current) => {
-    const tokens = current ? readClaimTokens() : []
-    if (tokens.length && !claim.isPending.value) claim.mutate(tokens)
+    if (!current) return
+    const tokens = readClaimTokens()
+    if (!tokens.length) history.clearLocal()
+    else if (!claim.isPending.value) claim.mutate(tokens)
   }, { immediate: true })
 }

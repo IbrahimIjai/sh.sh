@@ -10,19 +10,19 @@ export function readClaimTokens(): string[] {
   }
 }
 
-export function rememberClaimToken(token?: string) {
-  if (!token) return
+function save(tokens: string[]) {
   try {
-    localStorage.setItem(KEY, JSON.stringify([...readClaimTokens(), token].slice(-MAX)))
+    localStorage.setItem(KEY, JSON.stringify(tokens))
+    return true
   } catch {
-    // Storage can be full or blocked; the link itself is already created.
+    return false
   }
 }
 
+export function rememberClaimToken(token?: string) {
+  if (token) save([...readClaimTokens(), token].slice(-MAX))
+}
+
 export function clearClaimTokens() {
-  try {
-    localStorage.removeItem(KEY)
-  } catch {
-    // Nothing to clear when storage is blocked.
-  }
+  save([])
 }

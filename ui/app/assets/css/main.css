@@ -9,7 +9,6 @@
   --text-ui: 0.8125rem;
   --text-ui--line-height: 1.5;
 
-  /* Nuxt UI scales these from --ui-radius; keep the brief's actual dimensions. */
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
@@ -18,7 +17,6 @@
   --radius-2xl: 1rem;
 }
 
-/* Keep these unlayered so Nuxt UI's theme defaults cannot override them. */
 :root {
   --ds-paper: #f7f4eb;
   --ds-ink: #111111;
@@ -93,7 +91,6 @@ html {
   color-scheme: dark;
 }
 
-/* Beats vue-sonner's own [data-sonner-toaster][data-sonner-theme] colours. */
 html [data-sonner-toaster][data-sonner-theme] {
   --normal-bg: var(--ds-surface);
   --normal-bg-hover: var(--ds-surface-quiet);
@@ -102,6 +99,12 @@ html [data-sonner-toaster][data-sonner-theme] {
   --normal-text: var(--ds-ink);
   --border-radius: 12px;
   font-family: var(--font-sans);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html [data-sonner-toast] {

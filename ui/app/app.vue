@@ -42,9 +42,11 @@ useSeoMeta({
       </main>
       <AppFooter />
     </div>
-    <Toaster
-      position="bottom-center"
-      :theme="colorMode.value === 'dark' ? 'dark' : 'light'"
-    />
+    <Teleport to="#teleports">
+      <Toaster
+        position="bottom-center"
+        :theme="colorMode.value === 'dark' ? 'dark' : 'light'"
+      />
+    </Teleport>
   </UApp>
 </template>
