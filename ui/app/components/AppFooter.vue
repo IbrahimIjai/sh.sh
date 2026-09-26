@@ -11,12 +11,12 @@ const links = [
 <template>
   <UFooter
     :ui="{
-      container: 'border-t border-default lg:py-8',
+      container: 'max-w-6xl border-t border-muted lg:py-6',
       right: 'gap-x-0 flex-wrap'
     }"
   >
     <template #left>
-      <p class="text-sm text-dimmed">
+      <p class="text-xs text-toned">
         Built with Nuxt UI • © {{ new Date().getFullYear() }}
       </p>
     </template>

@@ -1,12 +1,17 @@
 <script setup lang="ts">
 const colorMode = useColorMode()
+const themeColor = computed(() => colorMode.value === 'dark' ? '#171715' : '#f7f4eb')
 
-const color = computed(() => colorMode.value === 'dark' ? '#09090b' : 'white')
+if (import.meta.client) {
+  watch(themeColor, (value) => {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', value)
+  }, { immediate: true })
+}
 
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-    { key: 'theme-color', name: 'theme-color', content: color }
+    { key: 'theme-color', name: 'theme-color', content: themeColor }
   ],
   link: [
     { rel: 'icon', href: '/favicon.ico' }

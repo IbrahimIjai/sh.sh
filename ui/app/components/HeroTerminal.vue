@@ -32,14 +32,14 @@ function lineMotion(index: number) {
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-xl border border-default bg-elevated/50 backdrop-blur-sm ring-1 ring-white/2">
-    <div class="flex items-center gap-1.5 border-b border-default p-4 sm:px-6">
+  <div class="overflow-hidden rounded-xl border border-default bg-default shadow-(--ds-shadow-xs)">
+    <div class="flex items-center gap-1.5 border-b border-muted bg-muted px-4 py-3">
       <span class="size-2.5 rounded-full border border-default bg-muted" />
       <span class="size-2.5 rounded-full border border-default bg-muted" />
       <span class="size-2.5 rounded-full border border-default bg-muted" />
     </div>
 
-    <div class="min-h-[200px] p-5 font-mono text-[13px] leading-[1.8] sm:p-6">
+    <div class="min-h-[208px] wrap-anywhere p-4 font-mono text-xs leading-[1.8] sm:p-5">
       <Motion
         v-for="(line, lineIndex) in lines"
         :key="lineIndex"

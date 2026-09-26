@@ -1,38 +1,97 @@
 export default defineAppConfig({
   ui: {
     colors: {
-      primary: 'lime',
-      warning: 'purple',
-      neutral: 'zinc'
+      primary: 'neutral',
+      neutral: 'neutral'
+    },
+    icons: {
+      dark: 'i-lucide-moon',
+      light: 'i-lucide-sun'
     },
     button: {
       slots: {
-        base: 'font-semibold transition-all duration-200'
+        base: 'rounded-lg font-medium transition-colors duration-150'
       },
       variants: {
         size: {
           xs: {
-            base: 'px-3'
+            base: 'px-2.5 text-xs'
           },
           sm: {
-            base: 'px-4'
+            base: 'px-3 text-xs'
           },
           md: {
-            base: 'px-4'
+            base: 'px-3 text-sm',
+            leadingIcon: 'size-4',
+            trailingIcon: 'size-4'
           },
           lg: {
-            base: 'px-5'
+            base: 'px-4 text-sm',
+            leadingIcon: 'size-4',
+            trailingIcon: 'size-4'
           },
           xl: {
-            base: 'px-6'
+            base: 'px-4 py-2.5 text-sm',
+            leadingIcon: 'size-4',
+            trailingIcon: 'size-4'
           }
         }
       },
-      compoundVariants: [{
-        color: 'primary' as const,
-        variant: 'solid' as const,
-        class: 'hover:bg-primary active:bg-primary shadow-[0_0_20px_var(--btn-glow)] hover:shadow-[0_0_30px_var(--btn-glow-hover)] hover:-translate-y-px active:translate-y-0 [--btn-glow:color-mix(in_oklch,var(--ui-primary)_25%,transparent)] [--btn-glow-hover:color-mix(in_oklch,var(--ui-primary)_35%,transparent)]'
-      }]
+      defaultVariants: {
+        color: 'neutral',
+        variant: 'solid'
+      }
+    },
+    input: {
+      slots: {
+        base: 'rounded-lg'
+      }
+    },
+    textarea: {
+      slots: {
+        base: 'rounded-lg'
+      }
+    },
+    card: {
+      slots: {
+        root: 'rounded-xl'
+      }
+    },
+    header: {
+      slots: {
+        root: 'bg-paper/95 border-muted',
+        container: 'max-w-6xl'
+      }
+    },
+    navigationMenu: {
+      slots: {
+        link: 'text-sm font-medium before:rounded-lg'
+      },
+      variants: {
+        active: {
+          true: {
+            link: 'text-highlighted before:bg-accented'
+          }
+        }
+      },
+      defaultVariants: {
+        color: 'neutral'
+      }
+    },
+    dropdownMenu: {
+      slots: {
+        content: 'rounded-2xl bg-default shadow-(--ds-shadow-floating)',
+        item: 'rounded-lg before:rounded-lg'
+      }
+    },
+    modal: {
+      variants: {
+        fullscreen: {
+          false: {
+            content: 'rounded-2xl shadow-(--ds-shadow-floating)'
+          }
+        }
+      }
     }
   }
 })

@@ -42,11 +42,11 @@
   >
     <UButton
       label="Landing"
-      variant="subtle"
+      variant="outline"
       trailing-icon="i-lucide-chevron-down"
       size="xs"
-      class="-mb-[6px] truncate rounded-full font-semibold"
-      :class="[open && 'bg-primary/15']"
+      class="truncate rounded-full font-medium"
+      :class="[open && 'bg-accented']"
       :ui="{
         trailingIcon: ['transition-transform duration-200', open ? 'rotate-180' : undefined].filter(Boolean).join(' ')
       }"
