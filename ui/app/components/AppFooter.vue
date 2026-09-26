@@ -1,37 +1,24 @@
 <script setup lang="ts">
-const links = [
-  { label: 'Docs', to: 'https://ui.nuxt.com', target: '_blank' },
-  { label: 'GitHub', to: 'https://github.com/nuxt/ui', target: '_blank' },
-  { label: 'Twitter', to: 'https://twitter.com/nuxt_js', target: '_blank' },
-  { label: 'Status', to: '#' },
-  { label: 'Privacy', to: '#' }
-]
+const year = new Date().getFullYear()
 </script>
 
 <template>
-  <UFooter
-    :ui="{
-      container: 'max-w-6xl border-t border-muted lg:py-6',
-      right: 'gap-x-0 flex-wrap'
-    }"
-  >
-    <template #left>
-      <p class="text-xs text-toned">
-        Built with Nuxt UI • © {{ new Date().getFullYear() }}
-      </p>
-    </template>
-
-    <template #right>
-      <UButton
-        v-for="link in links"
-        :key="link.label"
-        :label="link.label"
-        :to="link.to"
-        color="neutral"
-        variant="link"
-        class="font-light"
-        size="sm"
-      />
-    </template>
-  </UFooter>
+  <footer class="mx-auto flex w-full max-w-6xl flex-col items-center gap-1 px-5 py-8 text-[13px] text-muted sm:flex-row sm:justify-between sm:px-8">
+    <p>© {{ year }} {{ site.name }}</p>
+    <p>
+      Built by {{ site.author }} ·
+      <a
+        :href="site.x"
+        target="_blank"
+        rel="noopener me"
+        class="rounded-sm underline-offset-4 hover:text-highlighted hover:underline focus-visible:ring-3 focus-visible:ring-(--ds-ink)/15 focus-visible:outline-none"
+      >X</a> ·
+      <a
+        :href="site.github"
+        target="_blank"
+        rel="noopener"
+        class="rounded-sm underline-offset-4 hover:text-highlighted hover:underline focus-visible:ring-3 focus-visible:ring-(--ds-ink)/15 focus-visible:outline-none"
+      >GitHub</a>
+    </p>
+  </footer>
 </template>

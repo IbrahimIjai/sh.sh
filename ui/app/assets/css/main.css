@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-@source "../../../content/**/*";
-
 @theme static {
   --font-sans: 'Geist', 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;

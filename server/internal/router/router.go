@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ibrahimijai/sh.sh/internal/auth"
@@ -28,9 +29,16 @@ func SetupRouter(cfg config.Config, db handlers.Pinger, authServer *auth.Server,
 	// Middleware
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
+	r.Use(appCORS(cfg.AppURL))
 
 	r.GET("/health", handlers.HealthCheck)
 	r.GET("/health/ready", handlers.Ready(db))
+
+	if cfg.AppURL != "" {
+		r.GET("/", func(c *gin.Context) {
+			c.Redirect(http.StatusMovedPermanently, cfg.AppURL)
+		})
+	}
 
 	if authServer != nil && authServer.Handler() != nil {
 		r.Any("/auth", gin.WrapH(authServer.Handler()))

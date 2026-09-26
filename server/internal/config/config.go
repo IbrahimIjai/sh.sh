@@ -39,6 +39,8 @@ type Config struct {
 	GeoIPDBPath string
 	// WebRiskAPIKey enables Google Web Risk checks on new links.
 	WebRiskAPIKey string
+	// AppURL is the UI's origin, e.g. https://app.shortened.cv. It gets CORS access and "/" redirects to it.
+	AppURL string
 }
 
 func Load() (Config, error) {
@@ -99,6 +101,7 @@ func Load() (Config, error) {
 		Port:                  port,
 		Env:                   env,
 		BaseURL:               baseURL,
+		AppURL:                strings.TrimRight(strings.TrimSpace(os.Getenv("APP_URL")), "/"),
 		DatabaseURL:           os.Getenv("DATABASE_URL"),
 		DBMaxOpenConns:        maxOpen,
 		DBMaxIdleConns:        maxIdle,

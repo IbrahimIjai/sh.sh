@@ -2,10 +2,8 @@
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
-    '@nuxt/content',
     '@nuxt/ui',
-    '@vueuse/nuxt',
-    'motion-v/nuxt'
+    '@vueuse/nuxt'
   ],
 
   devtools: {
@@ -15,19 +13,14 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   colorMode: {
-    preference: 'dark',
+    preference: 'system',
     fallback: 'dark'
   },
 
-  content: {
-    experimental: {
-      sqliteConnector: 'native'
-    }
-  },
-
-  mdc: {
-    highlight: {
-      noApiRoute: false
+  runtimeConfig: {
+    public: {
+      apiBase: 'http://localhost:8080',
+      siteUrl: 'http://localhost:3000'
     }
   },
 
@@ -36,7 +29,9 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       routes: [
-        '/'
+        '/',
+        '/robots.txt',
+        '/sitemap.xml'
       ]
     }
   },
