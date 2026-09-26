@@ -23,6 +23,8 @@ useHead({
   }
 })
 
+useClaimAnonymousLinks()
+
 useSeoMeta({
   ogSiteName: site.name,
   ogLocale: 'en_US',
@@ -32,7 +34,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <UApp :toaster="{ expand: false }">
+  <UApp :toaster="null">
     <div class="flex min-h-dvh flex-col">
       <AppHeader />
       <main class="flex-1">
@@ -40,5 +42,9 @@ useSeoMeta({
       </main>
       <AppFooter />
     </div>
+    <Toaster
+      position="bottom-center"
+      :theme="colorMode.value === 'dark' ? 'dark' : 'light'"
+    />
   </UApp>
 </template>

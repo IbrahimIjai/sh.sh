@@ -39,7 +39,7 @@ check "missing preview 404" "$(code $B/doesnotexist1+)" 404
 
 echo "== sign in (magic link from logs)"
 EMAIL="e2e-$(date +%s)@example.com"
-check "magic link request" "$(code -X POST $B/auth/magic-link/signin -H 'Content-Type: application/json' -d "{\"email\":\"$EMAIL\"}")" 200
+check "magic link request" "$(code -X POST $B/auth/magic-link/signin -H 'Content-Type: application/json' -H "Origin: $B" -d "{\"email\":\"$EMAIL\"}")" 200
 sleep 1
 MAGIC=$(docker compose logs api 2>/dev/null | grep "magic link for $EMAIL" | tail -1 | sed 's/.*: //')
 curl -s -o /dev/null -c "$JAR" "$MAGIC"

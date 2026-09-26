@@ -24,13 +24,19 @@ func New(cfg config.Config, db *sql.DB) (*Server, error) {
 		return nil, fmt.Errorf("magic-link email is not configured; production requires it")
 	}
 
+	httpOptions := []limen.HTTPConfigOption{limen.WithHTTPCookieSecure(cfg.Env == "production")}
+	// Magic links may only redirect to trusted origins, and the UI lives on its own origin.
+	if cfg.AppURL != "" {
+		httpOptions = append(httpOptions, limen.WithHTTPTrustedOrigins([]string{cfg.AppURL}))
+	}
+
 	limenAuth, err := limen.New(&limen.Config{
 		BaseURL:  cfg.BaseURL,
 		Database: sqladapter.NewPostgreSQL(db),
 		Plugins:  buildPlugins(cfg, emailSender),
 		Secret:   []byte(cfg.LimenSecret),
 		CLI:      &limen.CLIConfig{Enabled: cfg.Env != "production"},
-		HTTP:     limen.NewDefaultHTTPConfig(limen.WithHTTPCookieSecure(cfg.Env == "production")),
+		HTTP:     limen.NewDefaultHTTPConfig(httpOptions...),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create limen auth: %w", err)

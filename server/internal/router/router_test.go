@@ -102,6 +102,14 @@ func TestRootRedirectsToApp(t *testing.T) {
 	}
 }
 
+func TestRootRedirectKeepsQuery(t *testing.T) {
+	w := serve(newTestRouter(t, testAppURL), http.MethodGet, "/?error=invalid+token", "")
+
+	if got, want := w.Header().Get("Location"), testAppURL+"/?error=invalid+token"; got != want {
+		t.Errorf("Location = %q, want %q", got, want)
+	}
+}
+
 func TestNoAppURLKeepsOldBehaviour(t *testing.T) {
 	r := newTestRouter(t, "")
 

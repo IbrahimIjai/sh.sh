@@ -35,8 +35,13 @@ func SetupRouter(cfg config.Config, db handlers.Pinger, authServer *auth.Server,
 	r.GET("/health/ready", handlers.Ready(db))
 
 	if cfg.AppURL != "" {
+		// Keep the query: limen sends failed magic links to BASE_URL/?error=...
 		r.GET("/", func(c *gin.Context) {
-			c.Redirect(http.StatusMovedPermanently, cfg.AppURL)
+			target := cfg.AppURL
+			if query := c.Request.URL.RawQuery; query != "" {
+				target += "/?" + query
+			}
+			c.Redirect(http.StatusMovedPermanently, target)
 		})
 	}
 

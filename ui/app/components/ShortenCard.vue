@@ -1,38 +1,21 @@
 <script setup lang="ts">
-import { FetchError } from 'ofetch'
-
-interface CreatedLink {
-  short_url: string
-  target_url: string
-  claim_token?: string
-}
+import { toast } from 'vue-sonner'
 
 const MAX_URL_LENGTH = 2048
-const CLAIM_TOKENS_KEY = 'shortened:claim-tokens'
-const MAX_CLAIM_TOKENS = 100
 
-const { apiBase } = useRuntimeConfig().public
 const { copy, copied, isSupported: canCopy } = useClipboard({ copiedDuring: 2000, legacy: true })
+const { data: user } = useCurrentUser()
+const createLink = useCreateLink()
 
 const longUrl = ref('')
-const pending = ref(false)
 const error = ref('')
 const link = ref<CreatedLink | null>(null)
-const copyFailed = ref(false)
-const everCopied = ref(false)
 
 const input = useTemplateRef('input')
 const copyButton = useTemplateRef('copyButton')
 
 const displayUrl = computed(() => link.value?.short_url.replace(/^https?:\/\//, '') ?? '')
-
-const note = computed(() => {
-  if (error.value) return error.value
-  if (!link.value) return 'No account needed for basic links.'
-  if (copyFailed.value) return 'Copy did not work. Select the link and copy it.'
-  if (everCopied.value) return 'Copied. Go be useful.'
-  return 'That link got a haircut.'
-})
+const note = computed(() => error.value || (user.value ? '' : 'No account needed for basic links.'))
 
 function normalize(raw: string): string | null {
   const value = /^[a-z][a-z\d+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`
@@ -47,13 +30,8 @@ function normalize(raw: string): string | null {
   }
 }
 
-function errorMessage(err: unknown): string {
-  if (!(err instanceof FetchError) || !err.status || err.status >= 500) {
-    return 'The link could not be shortened. Try again.'
-  }
-  if (err.status === 429) return 'Too many links from your network. Try again in a little while.'
-
-  const reason = String(err.data?.error ?? '')
+function rejectedReason(err: unknown): string {
+  const reason = apiMessage(err)
   if (reason.includes('unsafe')) return 'That link looks unsafe, so we will not shorten it.'
   if (reason.includes('another URL shortener')) return 'That is already a short link from another service.'
   if (reason.includes('already a short link')) return 'That is already a shortened.cv link.'
@@ -61,77 +39,58 @@ function errorMessage(err: unknown): string {
   return 'That does not look like a valid URL.'
 }
 
-function rememberClaimToken(token?: string) {
-  if (!token) return
-  try {
-    const saved: unknown = JSON.parse(localStorage.getItem(CLAIM_TOKENS_KEY) ?? '[]')
-    const tokens = Array.isArray(saved) ? saved.filter(t => typeof t === 'string') : []
-    localStorage.setItem(CLAIM_TOKENS_KEY, JSON.stringify([...tokens, token].slice(-MAX_CLAIM_TOKENS)))
-  } catch {
-    // Storage can be full or blocked; the link itself is already created.
-  }
+function showInline(message: string) {
+  error.value = message
+  input.value?.focus()
 }
 
-async function shorten() {
-  if (pending.value) return
+function shorten() {
+  if (createLink.isPending.value) return
 
   const raw = longUrl.value.trim()
-  if (!raw) {
-    error.value = 'Give us something long.'
-    input.value?.focus()
-    return
-  }
+  if (!raw) return showInline('Give us something long.')
   const target = normalize(raw)
-  if (!target) {
-    error.value = 'That does not look like a valid URL.'
-    input.value?.focus()
-    return
-  }
-  if (target.length > MAX_URL_LENGTH) {
-    error.value = 'That URL is too long to shorten.'
-    input.value?.focus()
-    return
-  }
+  if (!target) return showInline('That does not look like a valid URL.')
+  if (target.length > MAX_URL_LENGTH) return showInline('That URL is too long to shorten.')
 
   error.value = ''
-  pending.value = true
-  try {
-    const created = await $fetch<CreatedLink>('/api/v1/links', {
-      baseURL: apiBase,
-      method: 'POST',
-      body: { target_url: target },
-      credentials: 'include'
-    })
-    rememberClaimToken(created.claim_token)
-    link.value = created
-    await nextTick()
-    copyButton.value?.$el.focus()
-  } catch (err) {
-    error.value = errorMessage(err)
-    input.value?.focus()
-  } finally {
-    pending.value = false
-  }
+  createLink.mutate(target, {
+    onSuccess: async (created) => {
+      link.value = created
+      toast.success('That link got a haircut.')
+      await nextTick()
+      copyButton.value?.$el.focus()
+    },
+    onError: (err) => {
+      const status = apiStatus(err)
+      if (status === 400) return showInline(rejectedReason(err))
+      if (status === 429) {
+        toast.error('Too many links from your network. Log in or try again later.', {
+          action: { label: 'Log in', onClick: () => navigateTo('/login') }
+        })
+      } else {
+        toast.error('The link could not be shortened. Try again.')
+      }
+      input.value?.focus()
+    }
+  })
 }
 
 async function copyLink() {
   if (!link.value) return
-  copyFailed.value = false
   try {
     await copy(link.value.short_url)
-    everCopied.value = copied.value
-    copyFailed.value = !copied.value
   } catch {
-    copyFailed.value = true
+    // Reported below: copied stays false.
   }
+  if (copied.value) toast.success('Copied. Go be useful.')
+  else toast.error('Copy did not work. Select the link and copy it.')
 }
 
 async function reset() {
   link.value = null
   longUrl.value = ''
   error.value = ''
-  copyFailed.value = false
-  everCopied.value = false
   await nextTick()
   input.value?.focus()
 }
@@ -167,7 +126,7 @@ watch(longUrl, () => {
           autocapitalize="off"
           spellcheck="false"
           placeholder="Paste a long URL"
-          :readonly="pending"
+          :readonly="createLink.isPending.value"
           :aria-invalid="error ? 'true' : undefined"
           aria-describedby="shorten-note"
           class="h-12 min-w-0 flex-1 rounded-lg bg-transparent px-3 text-base text-highlighted outline-none placeholder:text-dimmed"
@@ -175,8 +134,8 @@ watch(longUrl, () => {
         <UButton
           type="submit"
           size="xl"
-          :loading="pending"
-          :disabled="pending"
+          :loading="createLink.isPending.value"
+          :disabled="createLink.isPending.value"
           class="h-12 justify-center sm:w-28"
         >
           Shorten
@@ -216,8 +175,9 @@ watch(longUrl, () => {
       </div>
     </div>
 
-    <div class="mt-3 flex min-h-8 flex-wrap items-center justify-center gap-x-3 gap-y-1 px-1 text-[13px] sm:justify-between">
+    <div class="mt-3 flex min-h-8 items-center justify-center px-1 text-[13px] sm:justify-between">
       <p
+        v-if="!link"
         id="shorten-note"
         aria-live="polite"
         :class="error ? 'text-error' : 'text-muted'"
@@ -225,10 +185,10 @@ watch(longUrl, () => {
         {{ note }}
       </p>
       <UButton
-        v-if="link"
+        v-else
         variant="link"
         size="sm"
-        class="px-0 text-[13px] text-toned hover:text-highlighted"
+        class="px-0 text-[13px] text-toned hover:text-highlighted sm:ms-auto"
         @click="reset"
       >
         Shorten another

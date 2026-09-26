@@ -93,6 +93,21 @@ html {
   color-scheme: dark;
 }
 
+/* Beats vue-sonner's own [data-sonner-toaster][data-sonner-theme] colours. */
+html [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--ds-surface);
+  --normal-bg-hover: var(--ds-surface-quiet);
+  --normal-border: var(--ds-border);
+  --normal-border-hover: var(--ds-border-strong);
+  --normal-text: var(--ds-ink);
+  --border-radius: 12px;
+  font-family: var(--font-sans);
+}
+
+html [data-sonner-toast] {
+  box-shadow: var(--ds-shadow-floating);
+}
+
 body {
   min-height: 100vh;
   background: var(--ds-paper);

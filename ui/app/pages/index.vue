@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { toast } from 'vue-sonner'
+
+const route = useRoute()
+const router = useRouter()
 const { siteUrl } = useRuntimeConfig().public
 const pageUrl = `${siteUrl}/`
 const ogImage = `${siteUrl}/og.png`
@@ -53,6 +57,18 @@ useHead({
       ]
     })
   }]
+})
+
+onMounted(() => {
+  if (typeof route.query.error === 'string') {
+    navigateTo({ path: '/login', query: { error: route.query.error } }, { replace: true })
+  }
+})
+
+onNuxtReady(() => {
+  if (route.query.login !== 'success') return
+  toast.success('You are logged in.')
+  router.replace({ query: {} })
 })
 </script>
 
