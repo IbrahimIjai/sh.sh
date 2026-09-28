@@ -1,4 +1,4 @@
-package router
+package middleware
 
 import (
 	"net/http"
@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// appCORS lets the UI at appURL call the API and auth routes with the user's cookies.
+// CORS lets the UI at appURL call the API and auth routes with the user's cookies.
 // Preflights never reach a route: gin sends unregistered OPTIONS requests to NoRoute.
-func appCORS(appURL string) gin.HandlerFunc {
+func CORS(appURL string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 		if appURL == "" || !(strings.HasPrefix(path, "/api/") || path == "/auth" || strings.HasPrefix(path, "/auth/")) {

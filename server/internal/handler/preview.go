@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ibrahimijai/sh.sh/internal/service"
 )
 
 type previewData struct {
@@ -22,8 +23,8 @@ type previewData struct {
 
 // renderPreview serves /{slug}+ : where a short link goes, without redirecting. "Continue" goes
 // through the normal redirect, so the visit is still counted.
-func (h *LinkHandler) renderPreview(c *gin.Context, slug string, link redirectLink, found bool) {
-	data := previewData{Found: found, ShortURL: h.shortURL(slug)}
+func (h *RedirectHandler) renderPreview(c *gin.Context, slug string, link service.RedirectTarget, found bool) {
+	data := previewData{Found: found, ShortURL: shortURL(h.baseURL, slug)}
 	status := http.StatusNotFound
 	if found {
 		status = http.StatusOK

@@ -2,15 +2,11 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ibrahimijai/sh.sh/internal/analytics"
@@ -18,9 +14,10 @@ import (
 	"github.com/ibrahimijai/sh.sh/internal/config"
 	"github.com/ibrahimijai/sh.sh/internal/database"
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
-	"github.com/ibrahimijai/sh.sh/internal/handlers"
-	"github.com/ibrahimijai/sh.sh/internal/router"
+	"github.com/ibrahimijai/sh.sh/internal/handler"
 	"github.com/ibrahimijai/sh.sh/internal/safety"
+	"github.com/ibrahimijai/sh.sh/internal/server"
+	"github.com/ibrahimijai/sh.sh/internal/service"
 )
 
 func main() {
@@ -60,7 +57,7 @@ func main() {
 		log.Println("click geolocation disabled: set GEOIP_DB_PATH or TRUSTED_PLATFORM=cloudflare")
 	}
 
-	var urlChecker handlers.URLChecker
+	var urlChecker service.URLChecker
 	if cfg.WebRiskAPIKey != "" {
 		urlChecker = safety.NewWebRisk(cfg.WebRiskAPIKey)
 	} else {
@@ -73,59 +70,43 @@ func main() {
 	}
 
 	clicks := analytics.NewRecorder(queries, analytics.RecorderConfig{})
-	linkHandler := handlers.NewLinkHandler(queries, handlers.LinkConfig{
-		BaseURL: cfg.BaseURL,
-		Hasher:  hasher,
-		Collector: analytics.NewCollector(analytics.CollectorConfig{
-			Hasher:     hasher,
-			Locator:    locator,
-			Cloudflare: cfg.TrustedPlatform == "cloudflare",
-			OwnHost:    baseHost,
-		}),
-		Clicks:    clicks,
-		Safety:    urlChecker,
+	redirects := service.NewRedirectService(queries, service.RedirectConfig{
 		CacheSize: cfg.LinkCacheSize,
 		CacheTTL:  cfg.LinkCacheTTL,
 	})
 	log.Printf("link cache: size=%d ttl=%s", cfg.LinkCacheSize, cfg.LinkCacheTTL)
+	links := service.NewLinkService(queries, service.LinkConfig{
+		Hasher:    hasher,
+		Safety:    urlChecker,
+		Redirects: redirects,
+		OwnHost:   baseHost,
+	})
+	collector := analytics.NewCollector(analytics.CollectorConfig{
+		Hasher:     hasher,
+		Locator:    locator,
+		Cloudflare: cfg.TrustedPlatform == "cloudflare",
+		OwnHost:    baseHost,
+	})
 
 	if cfg.Env == "production" && len(cfg.TrustedProxies) == 0 && cfg.TrustedPlatform == "" {
 		log.Println("warning: TRUSTED_PROXIES and TRUSTED_PLATFORM are empty, so client IPs come from the TCP connection; " +
 			"behind a load balancer every visitor shares its IP, which breaks the anonymous rate limit and unique-visitor counts")
 	}
 
-	r, err := router.SetupRouter(cfg, conn, authServer, linkHandler, handlers.NewDomainHandler(queries))
+	router, err := server.NewRouter(cfg, conn, authServer, server.Handlers{
+		Links:     handler.NewLinkHandler(links, cfg.BaseURL),
+		Redirects: handler.NewRedirectHandler(redirects, collector, clicks, cfg.BaseURL),
+		Domains:   handler.NewDomainHandler(service.NewDomainService(queries)),
+	})
 	if err != nil {
 		log.Fatalf("failed to set up router: %v", err)
-	}
-
-	addr := fmt.Sprintf(":%s", cfg.Port)
-	srv := &http.Server{
-		Addr:              addr,
-		Handler:           r,
-		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	go func() {
-		log.Printf("server running on http://localhost%s", addr)
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("failed to start server: %v", err)
-		}
-	}()
-
-	<-ctx.Done()
-	log.Println("shutting down")
-
-	// Stop taking requests first, then write out the clicks those requests buffered.
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("http shutdown: %v", err)
-	}
-	if err := clicks.Close(shutdownCtx); err != nil {
-		log.Printf("click recorder shutdown: %v", err)
+	// Requests stop first, then the click recorder writes out what they buffered.
+	if err := server.Run(ctx, ":"+cfg.Port, router, clicks.Close); err != nil {
+		log.Fatalf("failed to start server: %v", err)
 	}
 }

@@ -1,4 +1,4 @@
-package router
+package server
 
 import (
 	"fmt"
@@ -7,10 +7,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ibrahimijai/sh.sh/internal/auth"
 	"github.com/ibrahimijai/sh.sh/internal/config"
-	"github.com/ibrahimijai/sh.sh/internal/handlers"
+	"github.com/ibrahimijai/sh.sh/internal/handler"
+	"github.com/ibrahimijai/sh.sh/internal/middleware"
 )
 
-func SetupRouter(cfg config.Config, db handlers.Pinger, authServer *auth.Server, linkHandler *handlers.LinkHandler, domainHandler *handlers.DomainHandler) (*gin.Engine, error) {
+type Handlers struct {
+	Links     *handler.LinkHandler
+	Redirects *handler.RedirectHandler
+	Domains   *handler.DomainHandler
+}
+
+func NewRouter(cfg config.Config, pinger handler.Pinger, authServer *auth.Server, h Handlers) (*gin.Engine, error) {
 	r := gin.New()
 
 	// ClientIP() feeds visitor hashes, geo lookups and the anonymous rate limit. Gin trusts
@@ -26,13 +33,12 @@ func SetupRouter(cfg config.Config, db handlers.Pinger, authServer *auth.Server,
 		return nil, fmt.Errorf("unsupported TRUSTED_PLATFORM %q (supported: cloudflare)", cfg.TrustedPlatform)
 	}
 
-	// Middleware
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
-	r.Use(appCORS(cfg.AppURL))
+	r.Use(middleware.CORS(cfg.AppURL))
 
-	r.GET("/health", handlers.HealthCheck)
-	r.GET("/health/ready", handlers.Ready(db))
+	r.GET("/health", handler.HealthCheck)
+	r.GET("/health/ready", handler.Ready(pinger))
 
 	if cfg.AppURL != "" {
 		// Keep the query: limen sends failed magic links to BASE_URL/?error=...
@@ -50,31 +56,30 @@ func SetupRouter(cfg config.Config, db handlers.Pinger, authServer *auth.Server,
 		r.Any("/auth/*path", gin.WrapH(authServer.Handler()))
 	}
 
-	// API v1 routes
 	v1 := r.Group("/api/v1")
 	{
 		// Anyone can shorten a link; anonymous links come back with a claim token.
-		v1.POST("/links", authServer.OptionalSession(), linkHandler.Create)
-		v1.POST("/links/lookup", linkHandler.Lookup)
+		v1.POST("/links", authServer.OptionalSession(), h.Links.Create)
+		v1.POST("/links/lookup", h.Links.Lookup)
 
 		links := v1.Group("/links", authServer.RequireSession())
 		{
-			links.GET("", linkHandler.List)
-			links.POST("/claim", linkHandler.Claim)
-			links.GET("/:id/stats", linkHandler.Stats)
-			links.DELETE("/:id", linkHandler.Delete)
+			links.GET("", h.Links.List)
+			links.POST("/claim", h.Links.Claim)
+			links.GET("/:id/stats", h.Links.Stats)
+			links.DELETE("/:id", h.Links.Delete)
 		}
 
 		domains := v1.Group("/domains", authServer.RequireSession())
 		{
-			domains.POST("", domainHandler.Create)
-			domains.GET("", domainHandler.List)
-			domains.DELETE("/:id", domainHandler.Delete)
+			domains.POST("", h.Domains.Create)
+			domains.GET("", h.Domains.List)
+			domains.DELETE("/:id", h.Domains.Delete)
 		}
 	}
 
 	// GET /{slug} redirects, GET /{slug}+ previews.
-	r.NoRoute(linkHandler.Redirect)
+	r.NoRoute(h.Redirects.Redirect)
 
 	return r, nil
 }

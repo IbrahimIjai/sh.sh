@@ -113,6 +113,7 @@ INSERT INTO links (
 ) VALUES (
 	$1, $2, $3, $4, $5, $6, $7, $8
 )
+ON CONFLICT (slug) DO NOTHING
 RETURNING id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 `
 
@@ -127,6 +128,7 @@ type CreateLinkParams struct {
 	CreatorHash    sql.NullString `json:"creator_hash"`
 }
 
+// Returns no row when the slug is taken. idx_links_slug covers soft-deleted rows too, so a slug is never reused.
 func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error) {
 	row := q.db.QueryRowContext(ctx, createLink,
 		arg.UserID,
@@ -315,22 +317,6 @@ func (q *Queries) ListLinksByUser(ctx context.Context, arg ListLinksByUserParams
 		return nil, err
 	}
 	return items, nil
-}
-
-const slugExists = `-- name: SlugExists :one
-SELECT EXISTS (
-	SELECT 1
-	FROM links
-	WHERE slug = $1
-)
-`
-
-// Soft-deleted links still hold their slug: idx_links_slug is unique across all rows.
-func (q *Queries) SlugExists(ctx context.Context, slug string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, slugExists, slug)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
 
 const softDeleteLink = `-- name: SoftDeleteLink :exec

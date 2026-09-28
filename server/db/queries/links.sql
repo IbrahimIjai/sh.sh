@@ -1,4 +1,5 @@
 -- name: CreateLink :one
+-- Returns no row when the slug is taken. idx_links_slug covers soft-deleted rows too, so a slug is never reused.
 INSERT INTO links (
 	user_id,
 	slug,
@@ -11,6 +12,7 @@ INSERT INTO links (
 ) VALUES (
 	$1, $2, $3, $4, $5, $6, $7, $8
 )
+ON CONFLICT (slug) DO NOTHING
 RETURNING *;
 
 -- name: GetLinkBySlug :one
@@ -60,14 +62,6 @@ SET deleted_at = CURRENT_TIMESTAMP,
 	updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 	AND deleted_at IS NULL;
-
--- name: SlugExists :one
--- Soft-deleted links still hold their slug: idx_links_slug is unique across all rows.
-SELECT EXISTS (
-	SELECT 1
-	FROM links
-	WHERE slug = $1
-);
 
 -- name: CountLinksByCreatorSince :one
 SELECT COUNT(*)

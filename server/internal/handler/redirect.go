@@ -1,35 +1,51 @@
-package handlers
+package handler
 
 import (
-	"context"
-	"database/sql"
-	"errors"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ibrahimijai/sh.sh/internal/analytics"
+	"github.com/ibrahimijai/sh.sh/internal/service"
 )
 
 // UTM tags on a short link (shortened.cv/abc?utm_source=newsletter) are recorded with the click
 // and passed on to the destination.
 var forwardedParams = []string{"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"}
 
-func (h *LinkHandler) Redirect(c *gin.Context) {
+type ClickRecorder interface {
+	Record(click analytics.Click)
+}
+
+type RedirectHandler struct {
+	redirects *service.RedirectService
+	collector *analytics.Collector
+	clicks    ClickRecorder
+	baseURL   string
+}
+
+func NewRedirectHandler(redirects *service.RedirectService, collector *analytics.Collector, clicks ClickRecorder, baseURL string) *RedirectHandler {
+	return &RedirectHandler{
+		redirects: redirects,
+		collector: collector,
+		clicks:    clicks,
+		baseURL:   strings.TrimRight(baseURL, "/"),
+	}
+}
+
+// Redirect serves GET /{slug} and, with a "+" suffix, the preview page.
+func (h *RedirectHandler) Redirect(c *gin.Context) {
 	slug, preview, ok := redirectSlug(c)
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
 
-	link, found, err := h.redirects.Get(c.Request.Context(), slug, h.loadRedirect)
+	link, found, err := h.redirects.Resolve(c.Request.Context(), slug)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not load link"})
 		return
-	}
-	if found && link.ExpiresAt.Valid && !h.now().Before(link.ExpiresAt.Time) {
-		found = false
 	}
 
 	if preview {
@@ -45,33 +61,6 @@ func (h *LinkHandler) Redirect(c *gin.Context) {
 
 	// 302, not 301: browsers cache a 301 and later clicks would never reach us to be counted.
 	c.Redirect(http.StatusFound, withForwardedParams(link.TargetURL, c.Request.URL.Query()))
-}
-
-type redirectLink struct {
-	ID        int64
-	Slug      string
-	TargetURL string
-	Title     string
-	CreatedAt time.Time
-	ExpiresAt sql.NullTime
-}
-
-func (h *LinkHandler) loadRedirect(ctx context.Context, slug string) (redirectLink, bool, error) {
-	link, err := h.queries.GetLinkBySlug(ctx, slug)
-	if errors.Is(err, sql.ErrNoRows) {
-		return redirectLink{}, false, nil
-	}
-	if err != nil {
-		return redirectLink{}, false, err
-	}
-	return redirectLink{
-		ID:        link.ID,
-		Slug:      link.Slug,
-		TargetURL: link.TargetUrl,
-		Title:     link.Title.String,
-		CreatedAt: link.CreatedAt,
-		ExpiresAt: link.ExpiresAt,
-	}, true, nil
 }
 
 // redirectSlug reads the slug from GET /{slug}, or /{slug}+ for the preview page.

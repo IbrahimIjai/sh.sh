@@ -1,4 +1,4 @@
-package router
+package server
 
 import (
 	"net/http"
@@ -9,7 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ibrahimijai/sh.sh/internal/config"
-	"github.com/ibrahimijai/sh.sh/internal/handlers"
+	"github.com/ibrahimijai/sh.sh/internal/handler"
+	"github.com/ibrahimijai/sh.sh/internal/service"
 )
 
 const testAppURL = "https://app.shortened.cv"
@@ -18,8 +19,13 @@ func newTestRouter(t *testing.T, appURL string) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	cfg := config.Config{BaseURL: "https://shortened.cv", AppURL: appURL}
-	links := handlers.NewLinkHandler(nil, handlers.LinkConfig{BaseURL: cfg.BaseURL, CacheTTL: time.Minute})
-	r, err := SetupRouter(cfg, nil, nil, links, handlers.NewDomainHandler(nil))
+	redirects := service.NewRedirectService(nil, service.RedirectConfig{CacheTTL: time.Minute})
+	links := service.NewLinkService(nil, service.LinkConfig{Redirects: redirects})
+	r, err := NewRouter(cfg, nil, nil, Handlers{
+		Links:     handler.NewLinkHandler(links, cfg.BaseURL),
+		Redirects: handler.NewRedirectHandler(redirects, nil, nil, cfg.BaseURL),
+		Domains:   handler.NewDomainHandler(service.NewDomainService(nil)),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

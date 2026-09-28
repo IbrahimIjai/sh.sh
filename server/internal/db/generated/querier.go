@@ -16,6 +16,7 @@ type Querier interface {
 	CountLinksByCreatorSince(ctx context.Context, arg CountLinksByCreatorSinceParams) (int64, error)
 	CountLinksByUser(ctx context.Context, userID sql.NullInt64) (int64, error)
 	CreateDomain(ctx context.Context, arg CreateDomainParams) (Domain, error)
+	// Returns no row when the slug is taken. idx_links_slug covers soft-deleted rows too, so a slug is never reused.
 	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
 	// visitor_hash rotates daily, so distinct hashes over a range add up the daily unique visitors.
 	GetClickTotalsByLink(ctx context.Context, arg GetClickTotalsByLinkParams) (GetClickTotalsByLinkRow, error)
@@ -35,8 +36,6 @@ type Querier interface {
 	// Empty strings in the arrays are stored as NULL.
 	// Reuse batch_id on every retry, including after an ambiguous commit outcome.
 	RecordClicks(ctx context.Context, arg RecordClicksParams) error
-	// Soft-deleted links still hold their slug: idx_links_slug is unique across all rows.
-	SlugExists(ctx context.Context, slug string) (bool, error)
 	SoftDeleteDomain(ctx context.Context, arg SoftDeleteDomainParams) error
 	SoftDeleteLink(ctx context.Context, id int64) error
 	UpdateLink(ctx context.Context, arg UpdateLinkParams) (Link, error)

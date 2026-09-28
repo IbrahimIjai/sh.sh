@@ -1,5 +1,77 @@
 # Local load benchmark
 
+## Article requirements and the current server
+
+`article.py` tests the current **single API + local LRU + PostgreSQL** implementation.
+Redis is proposed in `docs/010-claude-redis-postgres-multi-instance.md` but is not
+integrated into this server; starting an unused Redis container would not test it.
+The article workload is about **3,472 creations/sec + 34,722 redirects/sec**
+(300M creations and 3B redirects/day). Its 20-year storage requirement is excluded.
+Reporting rates and numeric latency targets below are our proposal, not article requirements.
+
+```bash
+python3 server/scripts/load/article.py \
+  --profiles smoke --integration-tests --fault-checks \
+  --output /tmp/sh-article-smoke
+
+python3 server/scripts/load/article.py \
+  --profiles baseline,creation,article,outage \
+  --output /tmp/sh-article-load
+```
+
+Profiles live in `article-profiles.json`. The runner freezes source files, records
+their hashes, builds a fresh image, uses random local ports and a UUID project,
+and removes only its own containers and volumes. No production credentials,
+outbound email, destination visits, Web Risk calls, or development data are used.
+Run benchmarks sequentially to avoid competing with one another.
+
+- Functional probes cover concurrent custom/generated slugs, ownership, anonymous
+  claims/quota, negative-cache invalidation, deletion, persisted expiry, UTM,
+  previews, and human/bot analytics. Public expiry creation is not implemented.
+- Fixed arrival rates independently exercise redirects, authenticated creation,
+  and reporting. Each creation adds one preview request to check immediate visibility.
+  Redirects include 10% bots; profiles cover uniform, skewed and single-hot-link traffic.
+- Success requires complete duration, no missed iterations, correct responses,
+  exact creation/analytics reconciliation, redirect median <5 ms / p99 <50 ms,
+  and report p95 <500 ms. Creation latency is measured without an invented SLO.
+  HTTP errors >=1% or redirect p99 >=2 s can abort after 15 s.
+- Fault checks deliberately kill the disposable API during a database outage to
+  measure volatile-queue loss, then measure healthy graceful drain and restart.
+  The `outage` profile checks buffered analytics recovery without killing the API.
+- `results.json`, `functional.json`, `fault-checks.json`, optional `go-tests.log`,
+  raw k6 summaries, resource samples, source snapshots and logs preserve evidence.
+  Failed throughput thresholds are recorded; the runner continues through profiles.
+  After cleanup it exits nonzero if any stage failed.
+
+Database sampling uses one short-lived diagnostic connection. Its `waiting` count
+includes idle connections waiting for clients; it is not an API connection-pool
+wait metric. The server does not yet expose `sql.DBStats` wait counters.
+
+The same host drives and serves traffic; the API has 2 CPU / 512 MiB limits and
+PostgreSQL 2 CPU / 1 GiB. These runs exclude Traefik, TLS and WAN latency, and do
+not prove monthly availability, backup recovery, VPS capacity, Redis capacity or
+day-long throughput. A dropped k6 iteration is unsent work, not a measured HTTP failure.
+Use `dashboards.py` below for substantial historical reporting data.
+For predominantly first-touch reads with a larger link dataset, use
+`--profiles cold --links 150000` in a separate output directory; the 60-second
+1,000/sec stage visits roughly 60,000 different keys instead of repeatedly warming 1,000.
+If the creation generator exhausts its VUs, repeat with
+`--profiles creation-confirmation --create-vus 400`. More VUs mean more generator
+workers, not more API instances. Preserve both results, including failed attempts.
+
+To reproduce the current stale-fill ordering bug without editing the server:
+
+```bash
+python3 server/scripts/load/cache_review.py --output /tmp/sh-cache-review
+```
+
+This saves a standalone Go regression probe and its result. The probe currently
+fails because an earlier lookup can repopulate a key after `Forget`; the Python
+command succeeds when it has recorded that finding. This is a logical race,
+not an unsynchronized memory access detected by Go's race detector.
+
+## Original redirect ramp
+
 Uses Grafana k6 2.3.0, an isolated API container, and a disposable PostgreSQL 17
 database. Requires Docker Compose and Python 3. Run from the repository root:
 
