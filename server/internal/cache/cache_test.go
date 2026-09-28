@@ -106,6 +106,60 @@ func TestForget(t *testing.T) {
 	}
 }
 
+// blockedLoad starts c.Get(key) with a load that returns value once release is closed.
+func blockedLoad(c *TTL[string], key, value string) (started, release, done chan struct{}) {
+	started, release, done = make(chan struct{}), make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(done)
+		c.Get(context.Background(), key, func(context.Context, string) (string, bool, error) {
+			close(started)
+			<-release
+			return value, true, nil
+		})
+	}()
+	return started, release, done
+}
+
+func load(value string, found bool) LoadFunc[string] {
+	return func(context.Context, string) (string, bool, error) { return value, found, nil }
+}
+
+func TestForgetDuringLoadKeepsStaleResultOut(t *testing.T) {
+	c := New[string](10, time.Minute, time.Second)
+	started, release, done := blockedLoad(c, "a", "old destination")
+	<-started
+	c.Forget("a")
+	close(release)
+	<-done
+
+	if v, found, _ := c.Get(context.Background(), "a", load("", false)); found {
+		t.Fatalf("stale %q survived Forget", v)
+	}
+}
+
+func TestOlderLoadCannotOverwriteNewerOne(t *testing.T) {
+	c := New[string](10, time.Minute, time.Second)
+	started, release, done := blockedLoad(c, "a", "old")
+	<-started
+	c.Forget("a")
+	if v, _, _ := c.Get(context.Background(), "a", load("new", true)); v != "new" {
+		t.Fatalf("load after Forget = %q, want new", v)
+	}
+	close(release)
+	<-done
+
+	v, found, _ := c.Get(context.Background(), "a", func(context.Context, string) (string, bool, error) {
+		t.Error("want a cache hit for the newer value")
+		return "", false, nil
+	})
+	if !found || v != "new" {
+		t.Fatalf("cached %q, want new", v)
+	}
+	if len(c.loading) != 0 {
+		t.Errorf("%d in-flight records left behind", len(c.loading))
+	}
+}
+
 func TestErrorsAreNotCached(t *testing.T) {
 	c, _ := newTestCache(10)
 	s := newFakeStore(map[string]string{"a": "A"})
