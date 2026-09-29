@@ -117,7 +117,8 @@ export function create() {
   const check = http.get(`${targets[other]}/${body.slug}+`, {
     redirects: 0, timeout: '5s', responseType: 'text', tags: {name: 'visibility'},
   });
-  visibility.add(check.status === 200 && check.body.includes(url));
+  // An instance that is down (a fault stage) can't answer either way.
+  if (check.status !== 0) visibility.add(check.status === 200 && check.body.includes(url));
 }
 
 export function report() {

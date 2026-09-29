@@ -10,10 +10,10 @@ def run_probes(snapshot, output, env, fixtures=None):
     shutil.copytree(snapshot, source)
     fixtures = fixtures or Path(__file__).resolve().parent/'review_tests'
     for path in fixtures.glob('*.go.txt'):
-        package = path.name.split('.')[0]
-        shutil.copy2(path, source/'internal'/package/'review_regression_test.go')
+        stem = path.name.split('.')[0]
+        shutil.copy2(path, source/'internal'/stem.split('-')[0]/f'review_{stem.replace("-", "_")}_test.go')
     command = ['go', 'test', '-race', '-count=1', '-json', '-run', '^TestReview',
-               './internal/rediscache', './internal/service', './internal/maintenance']
+               './internal/rediscache', './internal/service']
     result = subprocess.run(command, cwd=source, env=env, text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (output/'review-probes.jsonl').write_text(result.stdout)

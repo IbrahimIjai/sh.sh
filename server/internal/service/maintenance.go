@@ -1,6 +1,4 @@
-// Package maintenance keeps click storage in shape: daily partitions ahead of time, rollups of
-// closed UTC days, and raw retention.
-package maintenance
+package service
 
 import (
 	"context"
@@ -16,12 +14,12 @@ import (
 )
 
 const (
-	lockKey         = 7_461_001
-	partitionPrefix = "clicks_p"
-	dayLayout       = "20060102"
+	maintenanceLockKey = 7_461_001
+	partitionPrefix    = "clicks_p"
+	dayLayout          = "20060102"
 )
 
-type Config struct {
+type MaintenanceConfig struct {
 	// RawRetentionDays drops daily raw partitions older than this, once their day is rolled up.
 	RawRetentionDays int
 	// Every is how often Start runs a pass.
@@ -34,21 +32,24 @@ type Config struct {
 	DaysAhead int
 }
 
-type Report struct {
+type MaintenanceReport struct {
 	Skipped           bool     `json:"skipped,omitempty"`
 	PartitionsCreated []string `json:"partitions_created,omitempty"`
 	DaysRolled        []string `json:"days_rolled,omitempty"`
 	PartitionsDropped []string `json:"partitions_dropped,omitempty"`
+	DefaultRowsPurged int64    `json:"default_rows_purged,omitempty"`
 }
 
+// Maintainer keeps click storage in shape: daily partitions ahead of time, rollups of closed UTC
+// days, and raw retention. It runs in the background; nothing calls it over HTTP.
 type Maintainer struct {
 	conn    *sql.DB
 	queries *db.Queries
-	cfg     Config
+	cfg     MaintenanceConfig
 	now     func() time.Time
 }
 
-func New(conn *sql.DB, cfg Config) *Maintainer {
+func NewMaintainer(conn *sql.DB, cfg MaintenanceConfig) *Maintainer {
 	if cfg.RawRetentionDays <= 0 {
 		cfg.RawRetentionDays = 30
 	}
@@ -90,34 +91,34 @@ func (m *Maintainer) logPass(ctx context.Context) {
 	if err != nil {
 		log.Printf("maintenance: %v", err)
 	}
-	if len(report.PartitionsCreated)+len(report.DaysRolled)+len(report.PartitionsDropped) > 0 {
-		log.Printf("maintenance: created %d partitions, rolled up %d days, dropped %d partitions",
-			len(report.PartitionsCreated), len(report.DaysRolled), len(report.PartitionsDropped))
+	if len(report.PartitionsCreated)+len(report.DaysRolled)+len(report.PartitionsDropped) > 0 || report.DefaultRowsPurged > 0 {
+		log.Printf("maintenance: created %d partitions, rolled up %d days, dropped %d partitions, purged %d old default-partition rows",
+			len(report.PartitionsCreated), len(report.DaysRolled), len(report.PartitionsDropped), report.DefaultRowsPurged)
 	}
 }
 
 // Run makes one pass. With wait, it waits for another instance's pass instead of skipping.
-func (m *Maintainer) Run(ctx context.Context, wait bool) (Report, error) {
+func (m *Maintainer) Run(ctx context.Context, wait bool) (MaintenanceReport, error) {
 	conn, err := m.conn.Conn(ctx)
 	if err != nil {
-		return Report{}, err
+		return MaintenanceReport{}, err
 	}
 	defer conn.Close()
 
 	locked := true
 	if wait {
-		if _, err := conn.ExecContext(ctx, "SELECT pg_advisory_lock($1)", lockKey); err != nil {
-			return Report{}, err
+		if _, err := conn.ExecContext(ctx, "SELECT pg_advisory_lock($1)", maintenanceLockKey); err != nil {
+			return MaintenanceReport{}, err
 		}
-	} else if err := conn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", lockKey).Scan(&locked); err != nil {
-		return Report{}, err
+	} else if err := conn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", maintenanceLockKey).Scan(&locked); err != nil {
+		return MaintenanceReport{}, err
 	}
 	if !locked {
-		return Report{Skipped: true}, nil
+		return MaintenanceReport{Skipped: true}, nil
 	}
-	defer conn.ExecContext(context.Background(), "SELECT pg_advisory_unlock($1)", lockKey)
+	defer conn.ExecContext(context.Background(), "SELECT pg_advisory_unlock($1)", maintenanceLockKey)
 
-	var report Report
+	var report MaintenanceReport
 	today := dayOf(m.now())
 	var errs []error
 	created, err := m.ensurePartitions(ctx, today)
@@ -126,6 +127,8 @@ func (m *Maintainer) Run(ctx context.Context, wait bool) (Report, error) {
 	report.DaysRolled, errs = rolled, append(errs, err)
 	dropped, err := m.dropExpired(ctx, today)
 	report.PartitionsDropped, errs = dropped, append(errs, err)
+	report.DefaultRowsPurged, err = m.purgeDefault(ctx, today)
+	errs = append(errs, err)
 	return report, errors.Join(errs...)
 }
 
@@ -149,9 +152,7 @@ func (m *Maintainer) ensurePartitions(ctx context.Context, today time.Time) ([]s
 		if exists {
 			continue
 		}
-		stmt := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s PARTITION OF clicks FOR VALUES FROM ('%s') TO ('%s')",
-			pq.QuoteIdentifier(name), d.Format(time.RFC3339), d.AddDate(0, 0, 1).Format(time.RFC3339))
-		if _, err := m.conn.ExecContext(ctx, stmt); err != nil {
+		if err := m.createPartition(ctx, name, d); err != nil {
 			errs = append(errs, fmt.Errorf("create %s: %w", name, err))
 			continue
 		}
@@ -180,6 +181,22 @@ func (m *Maintainer) rollUp(ctx context.Context, today time.Time) ([]string, err
 			return rolled, fmt.Errorf("roll up %s: %w", d.Format(time.DateOnly), err)
 		}
 		rolled = append(rolled, d.Format(time.DateOnly))
+	}
+
+	// Days that received clicks after their roll-up, e.g. from the stream after an outage.
+	cutoff := today.AddDate(0, 0, -m.cfg.RawRetentionDays)
+	stale, err := m.queries.ListStaleRollupDays(ctx, cutoff)
+	if err != nil {
+		return rolled, err
+	}
+	for _, d := range stale {
+		if err := m.rollDay(ctx, d); err != nil {
+			return rolled, fmt.Errorf("roll up %s again: %w", d.Format(time.DateOnly), err)
+		}
+		rolled = append(rolled, d.Format(time.DateOnly))
+	}
+	if err := m.queries.ClearStaleRollupDays(ctx, cutoff); err != nil {
+		return rolled, err
 	}
 
 	yesterday := today.AddDate(0, 0, -1)
@@ -214,11 +231,11 @@ func (m *Maintainer) rollDay(ctx context.Context, day time.Time) error {
 	q := m.queries.WithTx(tx)
 	window := db.InsertRollupDailyParams{Day: day, DayStart: day, DayEnd: day.AddDate(0, 0, 1)}
 	steps := []func() error{
+		func() error { return q.MarkRollupDay(ctx, day) },
 		func() error { return q.DeleteRollupDaily(ctx, day) },
 		func() error { return q.DeleteRollupDimensions(ctx, day) },
 		func() error { return q.InsertRollupDaily(ctx, window) },
 		func() error { return q.InsertRollupDimensions(ctx, db.InsertRollupDimensionsParams(window)) },
-		func() error { return q.MarkRollupDay(ctx, day) },
 	}
 	for _, step := range steps {
 		if err := step(); err != nil {
@@ -271,6 +288,57 @@ func (m *Maintainer) dropExpired(ctx context.Context, today time.Time) ([]string
 		dropped = append(dropped, name)
 	}
 	return dropped, errors.Join(errs...)
+}
+
+// createPartition adds day's partition. Clicks already stored for that day in the default
+// partition would block it, so they are moved into the new table first.
+func (m *Maintainer) createPartition(ctx context.Context, name string, day time.Time) error {
+	from, to := day.Format(time.RFC3339), day.AddDate(0, 0, 1).Format(time.RFC3339)
+	table := pq.QuoteIdentifier(name)
+	bounds := fmt.Sprintf("FOR VALUES FROM ('%s') TO ('%s')", from, to)
+	_, err := m.conn.ExecContext(ctx, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s PARTITION OF clicks %s", table, bounds))
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) || pqErr.Code != "23514" {
+		return err
+	}
+	tx, err := m.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, stmt := range []string{
+		fmt.Sprintf("CREATE TABLE %s (LIKE clicks INCLUDING DEFAULTS INCLUDING CONSTRAINTS)", table),
+		fmt.Sprintf("INSERT INTO %s SELECT * FROM clicks_default WHERE created_at >= '%s' AND created_at < '%s'", table, from, to),
+		fmt.Sprintf("DELETE FROM clicks_default WHERE created_at >= '%s' AND created_at < '%s'", from, to),
+		fmt.Sprintf("ALTER TABLE clicks ATTACH PARTITION %s %s", table, bounds),
+	} {
+		if _, err := tx.ExecContext(ctx, stmt); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// purgeDefault applies raw retention to the default partition, which holds clicks for days
+// without their own partition. Only days already rolled up are removed, a batch at a time.
+func (m *Maintainer) purgeDefault(ctx context.Context, today time.Time) (int64, error) {
+	cutoff := today.AddDate(0, 0, -m.cfg.RawRetentionDays)
+	var purged int64
+	for {
+		res, err := m.conn.ExecContext(ctx, `DELETE FROM clicks_default WHERE ctid IN (
+			SELECT d.ctid FROM clicks_default d
+			WHERE d.created_at < $1
+				AND EXISTS (SELECT 1 FROM click_rollup_days r WHERE r.day = (d.created_at AT TIME ZONE 'UTC')::date)
+			LIMIT 10000)`, cutoff)
+		if err != nil {
+			return purged, err
+		}
+		n, err := res.RowsAffected()
+		purged += n
+		if err != nil || n < 10000 {
+			return purged, err
+		}
+	}
 }
 
 func dayOf(t time.Time) time.Time {

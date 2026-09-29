@@ -7,10 +7,12 @@ import json
 import os
 from pathlib import Path
 import random
+import shutil
 import subprocess
 import sys
 import threading
 import time
+import uuid
 
 sys.dont_write_bytecode = True
 from run import HERE, SERVER, run
@@ -44,13 +46,29 @@ def main():
         p.error('need >=2 users, >=3 history rows, levels <= users, and nonnegative confirmation/burst settings')
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=True)
-    if (out/'metadata.json').exists():
-        p.error('output already contains a run; choose a new directory')
+    if any(out.iterdir()):
+        p.error('output must be empty; choose a new directory')
+    # The seeded history spans 90 days; keep it raw so the API's rolled-up answers can be
+    # checked against raw SQL counts.
+    os.environ['CLICK_RAW_RETENTION_DAYS'] = '400'
     links = args.users * args.links_per_user
     popular = min(100, args.users)
-    project = f'sh-dashboard-{int(time.time())}'
+    project = 'sh-dashboard-' + uuid.uuid4().hex[:10]
     docker = ['docker', '--context', 'default']
-    compose = docker + ['compose', '-p', project, '-f', str(HERE/'compose.yml')]
+    snapshot, scripts = out/'source', out/'tested-scripts'
+    sources = [SERVER/'Dockerfile', SERVER/'go.mod', SERVER/'go.sum']
+    sources += sorted((SERVER/'cmd').rglob('*.go')) + sorted((SERVER/'internal').rglob('*.go'))
+    sources += sorted((SERVER/'db').rglob('*.sql'))
+    for src in sources:
+        target = snapshot/src.relative_to(SERVER)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, target)
+    scripts.mkdir()
+    for name in ['dashboards.py', 'dashboards.js', 'run.py', 'compose.yml']:
+        shutil.copy2(HERE/name, scripts/name)
+    override = out/'compose.override.json'
+    override.write_text(json.dumps({'services': {'api': {'build': {'context': str(snapshot)}}}}))
+    compose = docker + ['compose', '-p', project, '-f', str(scripts/'compose.yml'), '-f', str(override)]
     results = []
     stop = threading.Event()
     monitor_thread = None
@@ -107,7 +125,7 @@ def main():
         return checked
 
     def profile_queries():
-        source = (SERVER/'db/queries/clicks.sql').read_text()
+        source = (snapshot/'db/queries/clicks.sql').read_text()
         blocks = {block.splitlines()[0].split()[0]:block.partition('\n')[2]
                   for block in source.split('-- name: ')[1:]}
         plans = []
@@ -142,7 +160,7 @@ def main():
                   'REDIRECT_RATE':args.redirect_rate, 'STATS_VUS':args.stats_vus, 'REDIRECT_VUS':args.redirect_vus,
                   'BURST_REQUESTS':burst, 'BURST_VUS':args.burst_vus}
         command = docker + ['run', '--rm', '--name', project+'-k6', '--network', project+'_default',
-                            '--user', f'{os.getuid()}:{os.getgid()}', '-v', f'{HERE}:/scripts:ro', '-v', f'{out}:/results']
+                            '--user', f'{os.getuid()}:{os.getgid()}', '-v', f'{scripts}:/scripts:ro', '-v', f'{out}:/results']
         for name, value in values.items():
             command += ['-e', f'{name}={value}']
         command += ['grafana/k6:2.3.0', 'run', '--quiet', '/scripts/dashboards.js']
@@ -200,8 +218,9 @@ def main():
             'cpu':run(['lscpu'],capture_output=True).stdout,
             'history_days':90, 'popular_links':popular,
             'notes':'Synthetic independent account polling, not full browsers. All services share one host. No outbound email or redirect-target traffic. CPU/memory unchanged. Database activity sampling adds one short-lived diagnostic connection.'}
-    meta['source_sha256'] = {str(path.relative_to(SERVER)):hashlib.sha256(path.read_bytes()).hexdigest()
-                            for path in sorted([*SERVER.rglob('*.go'), *SERVER.glob('db/**/*.sql'), SERVER/'go.mod', SERVER/'go.sum', HERE/'dashboards.py', HERE/'dashboards.js', HERE/'compose.yml'])}
+    meta['source_sha256'] = {str(src.relative_to(SERVER)): hashlib.sha256((snapshot/src.relative_to(SERVER)).read_bytes()).hexdigest()
+                            for src in sources}
+    meta['tested_script_sha256'] = {src.name: hashlib.sha256(src.read_bytes()).hexdigest() for src in scripts.iterdir()}
     (out/'metadata.json').write_text(json.dumps(meta,indent=2)+'\n')
     try:
         print('Building isolated API...', flush=True)
@@ -210,7 +229,7 @@ def main():
         # Pull before measuring anything so network/image startup cannot distort a load stage.
         run(docker+['pull','curlimages/curl:8.12.1'],stdout=subprocess.DEVNULL)
         run(compose+['up','-d','--wait','db','redis'])
-        for migration in sorted((SERVER/'db/migrations').glob('*.sql')):
+        for migration in sorted((snapshot/'db/migrations').glob('*.sql')):
             sql(migration.read_text().split('-- +goose Down')[0])
         print(f'Seeding {args.users:,} accounts, {links:,} links, {args.history:,} clicks...',flush=True)
         sql(f"INSERT INTO users (id,email,email_verified_at,updated_at) SELECT i,'dashboard-'||i||'@example.com',now(),now() FROM generate_series(1,{args.users}) i;"
@@ -304,6 +323,8 @@ def main():
         with (out/'db.log').open('w') as log:
             subprocess.run(compose+['logs','--no-color','db'],stdout=log,stderr=subprocess.STDOUT)
         run(compose+['down','--volumes','--remove-orphans'])
+    if any(not result['passed'] for result in results):
+        raise SystemExit(1)
 
 
 if __name__=='__main__':

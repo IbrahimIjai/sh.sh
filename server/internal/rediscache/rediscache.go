@@ -39,6 +39,9 @@ func Open(url string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse REDIS_URL: %w", err)
 	}
+	// Without this, go-redis ignores context deadlines on reads and writes, and a stalled Redis
+	// stalls every redirect that misses the local cache.
+	opts.ContextTimeoutEnabled = true
 	store := &Store{client: redis.NewClient(opts)}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

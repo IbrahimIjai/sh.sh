@@ -599,17 +599,18 @@ class Proof:
     def judge(self, r):
         stage = r['stage']
         checks = {}
-        for kind, key in [('redirects', 'successful_redirects'), ('creates', 'successful_creates'),
-                          ('reports', 'successful_reports')]:
-            if stage[kind]:
-                checks[f'{kind} delivered >= {GOALS["delivered"]:.1%}'] = r[key] >= GOALS['delivered'] * stage[kind] * stage['seconds']
         scheduled = sum(stage[k] for k in ['redirects', 'creates', 'reports']) * stage['seconds']
-        checks[f'unsent <= {GOALS["unsent"]:.1%}'] = r['dropped_iterations'] <= GOALS['unsent'] * scheduled
         if stage.get('faults'):
             answered = r['successful_redirects'] + r['incorrect_responses']
             checks[f'redirect availability >= {GOALS["fault_availability"]:.0%}'] = (
                 answered == 0 or r['successful_redirects'] / answered >= GOALS['fault_availability'])
+            checks['no click stored twice'] = r['clicks']['duplicated'] == 0
         else:
+            for kind, key in [('redirects', 'successful_redirects'), ('creates', 'successful_creates'),
+                              ('reports', 'successful_reports')]:
+                if stage[kind]:
+                    checks[f'{kind} delivered >= {GOALS["delivered"]:.1%}'] = r[key] >= GOALS['delivered'] * stage[kind] * stage['seconds']
+            checks[f'unsent <= {GOALS["unsent"]:.1%}'] = r['dropped_iterations'] <= GOALS['unsent'] * scheduled
             checks['no incorrect responses'] = r['incorrect_responses'] == 0
             checks['every acknowledged click stored once'] = r['clicks']['lost'] == 0 and r['clicks']['duplicated'] == 0
             if stage['redirects']:

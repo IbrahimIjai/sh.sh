@@ -209,6 +209,18 @@ GROUP BY link_id, GROUPING SETS (
 );
 
 -- name: MarkRollupDay :exec
+-- Runs first in a roll-up, so a late click arriving meanwhile waits for it and marks the day stale again.
 INSERT INTO click_rollup_days (day, computed_at)
 VALUES (@day::date, CURRENT_TIMESTAMP)
-ON CONFLICT (day) DO UPDATE SET computed_at = EXCLUDED.computed_at;
+ON CONFLICT (day) DO UPDATE SET computed_at = EXCLUDED.computed_at, stale = FALSE;
+
+-- name: ListStaleRollupDays :many
+SELECT day
+FROM click_rollup_days
+WHERE stale
+	AND day >= @since::date
+ORDER BY day;
+
+-- name: ClearStaleRollupDays :exec
+-- Days before the raw retention cutoff can't be rolled up again: their raw clicks are gone.
+UPDATE click_rollup_days SET stale = FALSE WHERE stale AND day < @before::date;

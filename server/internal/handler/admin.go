@@ -28,10 +28,11 @@ func (h *AdminHandler) Takedown(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	slugs, err := h.links.Takedown(c.Request.Context(), req.Slugs, req.TargetHost)
+	slugs, pending, err := h.links.Takedown(c.Request.Context(), req.Slugs, req.TargetHost)
 	if err != nil {
 		writeError(c, err, "could not take links down")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"deactivated": slugs})
+	// pending: deactivated and gone from this instance, but Redis couldn't tell the others yet.
+	c.JSON(http.StatusOK, gin.H{"deactivated": slugs, "invalidation_pending": pending})
 }

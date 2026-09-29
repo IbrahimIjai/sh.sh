@@ -239,34 +239,37 @@ func (s *LinkService) Claim(ctx context.Context, userID int64, claimTokens []str
 }
 
 // Takedown deactivates links by slug and/or every active link to a host or its subdomains, and
-// stops them resolving on every instance. It returns the slugs it deactivated.
-func (s *LinkService) Takedown(ctx context.Context, slugs []string, host string) ([]string, error) {
+// stops them resolving on every instance. It returns the slugs it deactivated, and those whose
+// invalidation hasn't reached the other instances yet (it keeps retrying in the background).
+func (s *LinkService) Takedown(ctx context.Context, slugs []string, host string) (taken, pending []string, err error) {
 	if len(slugs) == 0 && host == "" {
-		return nil, &InputError{Message: "give slugs, target_host, or both"}
+		return nil, nil, &InputError{Message: "give slugs, target_host, or both"}
 	}
-	taken := []string{}
+	taken, pending = []string{}, []string{}
 	if len(slugs) > 0 {
 		bySlug, err := s.queries.DeactivateLinksBySlugs(ctx, slugs)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		taken = append(taken, bySlug...)
 	}
 	if host != "" {
 		normalized, err := normalizeHost(host)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		byHost, err := s.queries.DeactivateLinksByTargetHost(ctx, normalized)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		taken = append(taken, byHost...)
 	}
 	for _, slug := range taken {
-		s.redirects.Revoke(ctx, slug)
+		if s.redirects.Revoke(ctx, slug) != nil {
+			pending = append(pending, slug)
+		}
 	}
-	return taken, nil
+	return taken, pending, nil
 }
 
 func (s *LinkService) withClicks(ctx context.Context, links []db.Link) ([]LinkSummary, error) {

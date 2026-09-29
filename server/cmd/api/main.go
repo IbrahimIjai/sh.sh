@@ -17,7 +17,6 @@ import (
 	"github.com/ibrahimijai/sh.sh/internal/database"
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 	"github.com/ibrahimijai/sh.sh/internal/handler"
-	"github.com/ibrahimijai/sh.sh/internal/maintenance"
 	"github.com/ibrahimijai/sh.sh/internal/rediscache"
 	"github.com/ibrahimijai/sh.sh/internal/safety"
 	"github.com/ibrahimijai/sh.sh/internal/server"
@@ -105,7 +104,8 @@ func main() {
 	var stream *clickstream.Queue
 	if cfg.ClickQueue == "redis" {
 		// The recorder stays as the stream's fallback while Redis is down or the stream is over budget.
-		stream, err = clickstream.New(cfg.RedisURL, clickStore, recorder, clickstream.Config{
+		// Entries leave the stream once their write commits, so that commit must be durable.
+		stream, err = clickstream.New(cfg.RedisURL, analytics.NewPostgresStore(conn, false), recorder, clickstream.Config{
 			Buffer:    cfg.ClickBufferSize,
 			BatchSize: cfg.ClickBatchSize,
 			Consumers: cfg.ClickWriters,
@@ -147,7 +147,7 @@ func main() {
 		OwnHost:    baseHost,
 	})
 
-	maintainer := maintenance.New(conn, maintenance.Config{
+	maintainer := service.NewMaintainer(conn, service.MaintenanceConfig{
 		RawRetentionDays: cfg.ClickRawRetentionDays,
 		Every:            cfg.MaintenanceInterval,
 	})

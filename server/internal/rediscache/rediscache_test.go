@@ -3,6 +3,7 @@ package rediscache
 import (
 	"context"
 	"database/sql"
+	"os"
 	"testing"
 	"time"
 
@@ -101,5 +102,27 @@ func TestAllowCountsPerWindow(t *testing.T) {
 		if server.TTL(key) <= 0 {
 			t.Errorf("key %s has no TTL", key)
 		}
+	}
+}
+
+func TestRequestDeadlineBoundsAStalledRedis(t *testing.T) {
+	url := os.Getenv("TEST_REDIS_URL")
+	if url == "" {
+		t.Skip("set TEST_REDIS_URL to pause a real Redis for 500 ms")
+	}
+	store, err := Open(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if err := store.client.Do(context.Background(), "CLIENT", "PAUSE", "500", "ALL").Err(); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	began := time.Now()
+	store.Get(ctx, "stalled")
+	if took := time.Since(began); took > 200*time.Millisecond {
+		t.Fatalf("a 50 ms lookup took %s while Redis was stalled", took)
 	}
 }

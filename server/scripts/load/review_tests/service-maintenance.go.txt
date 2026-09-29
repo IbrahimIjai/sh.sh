@@ -1,4 +1,4 @@
-package maintenance
+package service
 
 import (
     "context"
@@ -7,10 +7,10 @@ import (
 )
 
 func TestReviewLateClicksReachRolledReports(t *testing.T) {
-    conn := testDatabase(t)
+    conn := maintenanceTestDatabase(t)
     ctx := context.Background()
     today := dayOf(time.Now())
-    m := New(conn, Config{LookbackDays: 3})
+    m := NewMaintainer(conn, MaintenanceConfig{LookbackDays: 3})
     m.now = func() time.Time { return today.Add(12*time.Hour) }
     if _, err := m.Run(ctx, false); err != nil { t.Fatal(err) }
     // A stream consumer recovers a delayed event after its day was already rolled up.
@@ -22,11 +22,11 @@ func TestReviewLateClicksReachRolledReports(t *testing.T) {
 }
 
 func TestReviewDefaultPartitionHonorsRetention(t *testing.T) {
-    conn := testDatabase(t)
+    conn := maintenanceTestDatabase(t)
     ctx := context.Background()
     today := dayOf(time.Now())
     if _, err := conn.Exec("INSERT INTO clicks (created_at,link_id) VALUES ($1,1)", today.AddDate(0,0,-40)); err != nil { t.Fatal(err) }
-    m := New(conn, Config{RawRetentionDays: 30, LookbackDays: 45})
+    m := NewMaintainer(conn, MaintenanceConfig{RawRetentionDays: 30, LookbackDays: 45})
     if _, err := m.Run(ctx, false); err != nil { t.Fatal(err) }
     var raw, rolled int
     if err := conn.QueryRow("SELECT count(*) FROM clicks_default WHERE created_at < $1", today.AddDate(0,0,-30)).Scan(&raw); err != nil { t.Fatal(err) }

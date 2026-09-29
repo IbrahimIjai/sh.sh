@@ -206,8 +206,8 @@ The runner checks cross-account access, verifies representative large/popular/
 ordinary links against PostgreSQL for 30/90-day windows before and after load,
 and reconciles each stage's newly recorded human/bot clicks and link counters.
 Historical clicks are excluded from stage reconciliation using campaign tags.
-Every stage requires correct responses, zero missed iterations, redirect p95
-under 100 ms, and analytics p95 under 500 ms. It aborts after 30 seconds if overall
+Every stage requires correct responses, zero missed iterations, redirect median
+under 5 ms / p99 under 50 ms, and analytics p95 under 500 ms. It aborts after 30 seconds if overall
 HTTP errors exceed 1% or redirect p99 exceeds two seconds. It records failing
 stages and still tests the requested higher levels. The highest passing ramp
 level gets a longer confirmation; a confirmation failure remains visible.
@@ -220,6 +220,9 @@ host hardware. `dashboards.json` contains only public synthetic fixture tokens.
 All temporary containers and volumes are removed, leaving the development stack
 untouched. Useful options: `--users`, `--links-per-user`, `--history`,
 `--refresh-seconds`, `--stats-vus`, `--redirect-vus`, `--burst-vus`.
+The runner freezes the API, migrations and generator scripts before building;
+failed stages produce a nonzero exit after cleanup. Older reporting runs used the
+less strict redirect p95 <100 ms threshold and may have disabled Redis AOF.
 
 Use `--profile-queries` to save `EXPLAIN ANALYZE` plans for the three analytics
 queries on large, popular, and ordinary links after all load traffic stops.

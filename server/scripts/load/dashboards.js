@@ -56,7 +56,7 @@ export const options = {
     dropped_iterations: ['count==0'],
     'dropped_iterations{scenario:redirects}': ['count==0'],
     'dropped_iterations{scenario:dashboards}': ['count==0'],
-    redirect_latency: ['p(95)<100', {threshold: 'p(99)<2000', abortOnFail: true, delayAbortEval: '30s'}],
+    redirect_latency: ['med<5', 'p(99)<50', {threshold: 'p(99)<2000', abortOnFail: true, delayAbortEval: '30s'}],
     stats_latency: ['p(95)<500'],
     http_req_failed: [{threshold: 'rate<0.01', abortOnFail: true, delayAbortEval: '30s'}],
     ...(burst ? {

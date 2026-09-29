@@ -12,6 +12,16 @@ import (
 	"github.com/lib/pq"
 )
 
+const clearStaleRollupDays = `-- name: ClearStaleRollupDays :exec
+UPDATE click_rollup_days SET stale = FALSE WHERE stale AND day < $1::date
+`
+
+// Days before the raw retention cutoff can't be rolled up again: their raw clicks are gone.
+func (q *Queries) ClearStaleRollupDays(ctx context.Context, before time.Time) error {
+	_, err := q.db.ExecContext(ctx, clearStaleRollupDays, before)
+	return err
+}
+
 const deleteRollupDaily = `-- name: DeleteRollupDaily :exec
 DELETE FROM click_daily WHERE day = $1::date
 `
@@ -427,12 +437,44 @@ func (q *Queries) ListRollupDimensionsByLink(ctx context.Context, arg ListRollup
 	return items, nil
 }
 
+const listStaleRollupDays = `-- name: ListStaleRollupDays :many
+SELECT day
+FROM click_rollup_days
+WHERE stale
+	AND day >= $1::date
+ORDER BY day
+`
+
+func (q *Queries) ListStaleRollupDays(ctx context.Context, since time.Time) ([]time.Time, error) {
+	rows, err := q.db.QueryContext(ctx, listStaleRollupDays, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []time.Time
+	for rows.Next() {
+		var day time.Time
+		if err := rows.Scan(&day); err != nil {
+			return nil, err
+		}
+		items = append(items, day)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markRollupDay = `-- name: MarkRollupDay :exec
 INSERT INTO click_rollup_days (day, computed_at)
 VALUES ($1::date, CURRENT_TIMESTAMP)
-ON CONFLICT (day) DO UPDATE SET computed_at = EXCLUDED.computed_at
+ON CONFLICT (day) DO UPDATE SET computed_at = EXCLUDED.computed_at, stale = FALSE
 `
 
+// Runs first in a roll-up, so a late click arriving meanwhile waits for it and marks the day stale again.
 func (q *Queries) MarkRollupDay(ctx context.Context, day time.Time) error {
 	_, err := q.db.ExecContext(ctx, markRollupDay, day)
 	return err

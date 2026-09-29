@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -13,8 +14,15 @@ import (
 )
 
 const (
-	sharedReadTimeout  = 50 * time.Millisecond
-	sharedWriteTimeout = 2 * time.Second
+	sharedReadTimeout = 50 * time.Millisecond
+	// Fills and announcements are on the request path; a slow Redis only costs a cache entry.
+	sharedFillTimeout   = 100 * time.Millisecond
+	sharedRevokeTimeout = 2 * time.Second
+	// revokedFor outlives any copy Redis may still hold (5-minute TTL), so a revocation that
+	// didn't reach Redis can't let this instance serve the old link again.
+	revokedFor = 10 * time.Minute
+	// After a failed Redis call, request paths skip Redis this long instead of each paying its timeout.
+	sharedBackoff = time.Second
 )
 
 // RedirectTarget is the part of a link that redirects and previews need.
@@ -70,6 +78,11 @@ type RedirectService struct {
 	dbSlots chan struct{}
 	now     func() time.Time
 
+	sharedDownUntil atomic.Int64 // unix nanos
+
+	revokedMu sync.Mutex
+	revoked   map[string]time.Time // slug → until; lookups skip Redis for these
+
 	l2Hits, l2Misses, l2Errors, dbLoads atomic.Uint64
 }
 
@@ -83,6 +96,7 @@ func NewRedirectService(queries db.Querier, cfg RedirectConfig) *RedirectService
 		cache:   cache.New[RedirectTarget](cfg.CacheSize, cfg.CacheTTL, min(cfg.CacheTTL, 5*time.Second)).WithStale(cfg.StaleFor),
 		shared:  cfg.Shared,
 		now:     now,
+		revoked: map[string]time.Time{},
 	}
 	if cfg.MaxDBLoads > 0 {
 		s.dbSlots = make(chan struct{}, cfg.MaxDBLoads)
@@ -136,42 +150,98 @@ func (s *RedirectService) Resolve(ctx context.Context, slug string) (RedirectTar
 func (s *RedirectService) Prime(ctx context.Context, link db.Link) {
 	target := redirectTarget(link)
 	s.cache.Set(link.Slug, target)
-	if s.shared == nil {
+	if !s.sharedUp() {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sharedWriteTimeout)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*sharedFillTimeout)
 	defer cancel()
 	if err := s.shared.Fill(ctx, link.Slug, target); err != nil {
-		s.l2Errors.Add(1)
+		s.sharedFailed()
+		return
 	}
 	if err := s.shared.Announce(ctx, link.Slug); err != nil {
-		s.l2Errors.Add(1)
+		s.sharedFailed()
 		log.Printf("redirect cache: announce %q: %v", link.Slug, err)
 	}
 }
 
-// Revoke stops a deleted or taken-down slug from resolving on every instance.
-func (s *RedirectService) Revoke(ctx context.Context, slug string) {
+// Revoke stops a deleted or taken-down slug from resolving on every instance. This instance
+// stops at once. An error means Redis wasn't updated: other instances may keep serving the slug
+// for up to their cache TTL plus Redis's, while a background retry keeps trying.
+func (s *RedirectService) Revoke(ctx context.Context, slug string) error {
+	s.revokedMu.Lock()
+	now := time.Now()
+	for k, until := range s.revoked {
+		if now.After(until) {
+			delete(s.revoked, k)
+		}
+	}
+	s.revoked[slug] = now.Add(revokedFor)
+	s.revokedMu.Unlock()
 	s.cache.Forget(slug)
 	if s.shared == nil {
-		return
+		return nil
 	}
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sharedWriteTimeout)
+	if err := s.revokeShared(ctx, slug); err != nil {
+		log.Printf("redirect cache: revoke %q: %v; retrying in the background", slug, err)
+		go s.retryRevoke(slug)
+		return err
+	}
+	return nil
+}
+
+func (s *RedirectService) revokeShared(ctx context.Context, slug string) error {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sharedRevokeTimeout)
 	defer cancel()
-	if err := s.shared.Revoke(ctx, slug); err != nil {
+	err := s.shared.Revoke(ctx, slug)
+	if err != nil {
 		s.l2Errors.Add(1)
-		log.Printf("redirect cache: revoke %q: %v; other instances may serve it until their cache expires", slug, err)
 	}
+	return err
+}
+
+func (s *RedirectService) retryRevoke(slug string) {
+	delay := time.Second
+	for deadline := time.Now().Add(revokedFor); time.Now().Before(deadline); {
+		time.Sleep(delay)
+		if err := s.revokeShared(context.Background(), slug); err == nil {
+			log.Printf("redirect cache: revoked %q after retrying", slug)
+			return
+		}
+		delay = min(delay*2, 30*time.Second)
+	}
+	log.Printf("redirect cache: gave up revoking %q in Redis; its cached copy expires on its own", slug)
+}
+
+func (s *RedirectService) sharedUp() bool {
+	return s.shared != nil && time.Now().UnixNano() >= s.sharedDownUntil.Load()
+}
+
+func (s *RedirectService) sharedFailed() {
+	s.l2Errors.Add(1)
+	s.sharedDownUntil.Store(time.Now().Add(sharedBackoff).UnixNano())
+}
+
+func (s *RedirectService) isRevoked(slug string) bool {
+	s.revokedMu.Lock()
+	defer s.revokedMu.Unlock()
+	until, ok := s.revoked[slug]
+	return ok && time.Now().Before(until)
 }
 
 func (s *RedirectService) load(ctx context.Context, slug string) (RedirectTarget, bool, error) {
-	if s.shared != nil {
+	shared := s.shared
+	if !s.sharedUp() || s.isRevoked(slug) {
+		shared = nil
+	}
+	if shared != nil {
 		readCtx, cancel := context.WithTimeout(ctx, sharedReadTimeout)
-		target, found, hit, err := s.shared.Get(readCtx, slug)
+		target, found, hit, err := shared.Get(readCtx, slug)
 		cancel()
 		switch {
 		case err != nil:
-			s.l2Errors.Add(1)
+			s.sharedFailed()
+			shared = nil
 		case hit:
 			s.l2Hits.Add(1)
 			return target, found, nil
@@ -197,10 +267,10 @@ func (s *RedirectService) load(ctx context.Context, slug string) (RedirectTarget
 		return RedirectTarget{}, false, err
 	}
 	target := redirectTarget(link)
-	if s.shared != nil {
-		fillCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sharedWriteTimeout)
-		if err := s.shared.Fill(fillCtx, slug, target); err != nil {
-			s.l2Errors.Add(1)
+	if shared != nil {
+		fillCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sharedFillTimeout)
+		if err := shared.Fill(fillCtx, slug, target); err != nil {
+			s.sharedFailed()
 		}
 		cancel()
 	}

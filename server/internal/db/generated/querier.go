@@ -12,6 +12,8 @@ import (
 
 type Querier interface {
 	ClaimLinks(ctx context.Context, arg ClaimLinksParams) ([]Link, error)
+	// Days before the raw retention cutoff can't be rolled up again: their raw clicks are gone.
+	ClearStaleRollupDays(ctx context.Context, before time.Time) error
 	CountLinksByCreatorSince(ctx context.Context, arg CountLinksByCreatorSinceParams) (int64, error)
 	CountLinksByUser(ctx context.Context, userID sql.NullInt64) (int64, error)
 	CreateDomain(ctx context.Context, arg CreateDomainParams) (Domain, error)
@@ -42,7 +44,9 @@ type Querier interface {
 	ListRolledDays(ctx context.Context, arg ListRolledDaysParams) ([]time.Time, error)
 	ListRollupDailyByLink(ctx context.Context, arg ListRollupDailyByLinkParams) ([]ListRollupDailyByLinkRow, error)
 	ListRollupDimensionsByLink(ctx context.Context, arg ListRollupDimensionsByLinkParams) ([]ListRollupDimensionsByLinkRow, error)
+	ListStaleRollupDays(ctx context.Context, since time.Time) ([]time.Time, error)
 	MarkDomainVerified(ctx context.Context, arg MarkDomainVerifiedParams) (Domain, error)
+	// Runs first in a roll-up, so a late click arriving meanwhile waits for it and marks the day stale again.
 	MarkRollupDay(ctx context.Context, day time.Time) error
 	// Inserts a batch of clicks and adds the new non-bot ones to link_counters in one statement.
 	// A click whose (created_at, event_id) is already stored is skipped, so a replay never counts

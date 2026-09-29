@@ -1,8 +1,9 @@
 // Package clickstream carries clicks from the API instance that saw them to PostgreSQL through a
-// Redis stream. A click reaches the stream within about 20 ms of its redirect, so a crashed
-// instance loses at most that much. Consumers on every instance write entries to PostgreSQL and
-// delete them only after the write commits. Entries left pending by a silent consumer are taken
-// over by another instance; event IDs make a second write of the same click a no-op.
+// Redis stream. Clicks are appended every 20 ms; a crashed instance loses the clicks it hadn't
+// appended yet, which is more than 20 ms' worth while Redis is slow or down and clicks wait in
+// memory. Consumers on every instance write entries to PostgreSQL and delete them only after a
+// durable commit. Entries left pending by a silent consumer are taken over by another instance;
+// event IDs make a second write of the same click a no-op.
 package clickstream
 
 import (

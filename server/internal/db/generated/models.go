@@ -62,6 +62,7 @@ type ClickDailyDim struct {
 type ClickRollupDay struct {
 	Day        time.Time `json:"day"`
 	ComputedAt time.Time `json:"computed_at"`
+	Stale      bool      `json:"stale"`
 }
 
 type ClicksDefault struct {

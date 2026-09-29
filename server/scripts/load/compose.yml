@@ -40,6 +40,7 @@ services:
       ADMIN_TOKEN: local-benchmark-admin-token-0123456789
       REQUEST_LOG: ${REQUEST_LOG:-all}
       CLICK_QUEUE: ${CLICK_QUEUE:-}
+      CLICK_RAW_RETENTION_DAYS: ${CLICK_RAW_RETENTION_DAYS:-30}
     logging:
       driver: json-file
       options:

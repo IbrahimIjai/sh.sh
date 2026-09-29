@@ -6,7 +6,7 @@ for auth (magic link + Google OAuth).
 
 Code layout: `cmd/api` (wiring), `internal/server` (routes, shutdown, metrics listener),
 `internal/middleware`, `internal/handler` (HTTP only), `internal/service` (business rules),
-`internal/db/generated` (sqlc), plus `cache`, `rediscache`, `analytics`, `clickstream` and `maintenance`.
+`internal/db/generated` (sqlc), plus `cache`, `rediscache`, `analytics`, `clickstream`. The maintenance job is `service/maintenance.go`.
 Metrics live in `service/metrics.go` (what is counted) and `handler/metrics.go` (request timing and the
 internal `/metrics` listener). `scripts/load` and `scripts/proof` are the benchmark harnesses.
 
@@ -249,7 +249,7 @@ go test -race ./...                 # unit tests (no database needed)
 # Optional PostgreSQL integration tests. Creates and removes an isolated schema;
 # the test user needs permission to create schemas. Use a local test database.
 TEST_DATABASE_URL='postgres://postgres:postgres@localhost:5434/myapp?sslmode=disable' \
-  go test -race -count=1 ./internal/analytics ./internal/database ./internal/maintenance
+  go test -race -count=1 ./internal/analytics ./internal/database ./internal/service
 
 # The click stream against PostgreSQL and Redis. Uses its own stream key and schema.
 TEST_DATABASE_URL='...' TEST_REDIS_URL='redis://localhost:6380/0' go test -race -count=1 ./internal/clickstream

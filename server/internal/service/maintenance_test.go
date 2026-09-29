@@ -1,4 +1,4 @@
-package maintenance
+package service
 
 import (
 	"context"
@@ -17,8 +17,8 @@ import (
 	"github.com/lib/pq"
 )
 
-// testDatabase applies every migration in a schema of its own, removed afterwards.
-func testDatabase(t *testing.T) *sql.DB {
+// maintenanceTestDatabase applies every migration in a schema of its own, removed afterwards.
+func maintenanceTestDatabase(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := os.Getenv("TEST_DATABASE_URL")
 	if dsn == "" {
@@ -67,7 +67,7 @@ func testDatabase(t *testing.T) *sql.DB {
 }
 
 func TestMaintenancePass(t *testing.T) {
-	conn := testDatabase(t)
+	conn := maintenanceTestDatabase(t)
 	ctx := context.Background()
 	queries := db.New(conn)
 	now := time.Now().UTC()
@@ -99,7 +99,7 @@ func TestMaintenancePass(t *testing.T) {
 	click(old.Add(time.Hour), "v5", "Google", false)
 	click(today.Add(time.Minute), "v6", "Google", false)
 
-	m := New(conn, Config{RawRetentionDays: 30, LookbackDays: 60})
+	m := NewMaintainer(conn, MaintenanceConfig{RawRetentionDays: 30, LookbackDays: 60})
 	m.now = func() time.Time { return now }
 	expected, err := queries.GetClickTotalsByLink(ctx, db.GetClickTotalsByLinkParams{LinkID: linkID, CreatedAt: day(-45)})
 	if err != nil {
@@ -178,4 +178,77 @@ func TestMaintenancePass(t *testing.T) {
 			t.Errorf("%s exists = %v (err %v), want true", name, exists, err)
 		}
 	})
+}
+
+func TestLateClicksReachRolledUpReports(t *testing.T) {
+	conn := maintenanceTestDatabase(t)
+	ctx := context.Background()
+	today := dayOf(time.Now())
+	m := NewMaintainer(conn, MaintenanceConfig{LookbackDays: 3})
+	m.now = func() time.Time { return today.Add(12 * time.Hour) }
+	if _, err := m.Run(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	// The stream delivers a click two days late, after its day was rolled up.
+	if _, err := conn.Exec("INSERT INTO clicks (created_at, link_id, visitor_hash) VALUES ($1, 1, 'late')", today.AddDate(0, 0, -2)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Run(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	var human int
+	if err := conn.QueryRow("SELECT coalesce(sum(human), 0) FROM click_daily WHERE link_id = 1").Scan(&human); err != nil {
+		t.Fatal(err)
+	}
+	if human != 1 {
+		t.Fatalf("rolled-up clicks = %d, want the late click counted", human)
+	}
+}
+
+func TestDefaultPartitionFollowsRetention(t *testing.T) {
+	conn := maintenanceTestDatabase(t)
+	ctx := context.Background()
+	today := dayOf(time.Now())
+	if _, err := conn.Exec("INSERT INTO clicks (created_at, link_id) VALUES ($1, 1)", today.AddDate(0, 0, -40)); err != nil {
+		t.Fatal(err)
+	}
+	m := NewMaintainer(conn, MaintenanceConfig{RawRetentionDays: 30, LookbackDays: 45})
+	report, err := m.Run(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var raw, rolled int
+	if err := conn.QueryRow("SELECT count(*) FROM clicks_default").Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.QueryRow("SELECT coalesce(sum(human), 0) FROM click_daily WHERE link_id = 1").Scan(&rolled); err != nil {
+		t.Fatal(err)
+	}
+	if raw != 0 || rolled != 1 || report.DefaultRowsPurged != 1 {
+		t.Fatalf("raw=%d rolled=%d purged=%d; want the 40-day-old click rolled up, then removed", raw, rolled, report.DefaultRowsPurged)
+	}
+}
+
+func TestPartitionCreatedOverDefaultRows(t *testing.T) {
+	conn := maintenanceTestDatabase(t)
+	ctx := context.Background()
+	today := dayOf(time.Now())
+	future := today.AddDate(0, 0, 5)
+	if _, err := conn.Exec("INSERT INTO clicks (created_at, link_id) VALUES ($1, 1)", future.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	m := NewMaintainer(conn, MaintenanceConfig{DaysAhead: 5})
+	if err := m.EnsurePartitions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var moved, left int
+	if err := conn.QueryRow("SELECT count(*) FROM " + pq.QuoteIdentifier(partitionPrefix+future.Format(dayLayout))).Scan(&moved); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.QueryRow("SELECT count(*) FROM clicks_default").Scan(&left); err != nil {
+		t.Fatal(err)
+	}
+	if moved != 1 || left != 0 {
+		t.Fatalf("new partition has %d rows, default %d; want the click moved into its day", moved, left)
+	}
 }
