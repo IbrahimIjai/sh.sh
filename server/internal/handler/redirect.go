@@ -44,7 +44,7 @@ func (h *RedirectHandler) Redirect(c *gin.Context) {
 
 	link, found, err := h.redirects.Resolve(c.Request.Context(), slug)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not load link"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "could not load link"})
 		return
 	}
 

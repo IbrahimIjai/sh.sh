@@ -21,7 +21,7 @@ SET user_id = $1,
 WHERE claim_token_hash = ANY($2::text[])
 	AND user_id IS NULL
 	AND deleted_at IS NULL
-RETURNING id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
+RETURNING id, user_id, slug, target_url, title, description, is_active, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 `
 
 type ClaimLinksParams struct {
@@ -46,7 +46,6 @@ func (q *Queries) ClaimLinks(ctx context.Context, arg ClaimLinksParams) ([]Link,
 			&i.Title,
 			&i.Description,
 			&i.IsActive,
-			&i.ClickCount,
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -114,7 +113,7 @@ INSERT INTO links (
 	$1, $2, $3, $4, $5, $6, $7, $8
 )
 ON CONFLICT (slug) DO NOTHING
-RETURNING id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
+RETURNING id, user_id, slug, target_url, title, description, is_active, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 `
 
 type CreateLinkParams struct {
@@ -149,7 +148,6 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 		&i.Title,
 		&i.Description,
 		&i.IsActive,
-		&i.ClickCount,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -160,8 +158,82 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 	return i, err
 }
 
+const deactivateLinksBySlugs = `-- name: DeactivateLinksBySlugs :many
+UPDATE links
+SET is_active = FALSE,
+	updated_at = CURRENT_TIMESTAMP
+WHERE slug = ANY($1::text[])
+	AND is_active
+RETURNING slug
+`
+
+func (q *Queries) DeactivateLinksBySlugs(ctx context.Context, slugs []string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, deactivateLinksBySlugs, pq.Array(slugs))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var slug string
+		if err := rows.Scan(&slug); err != nil {
+			return nil, err
+		}
+		items = append(items, slug)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const deactivateLinksByTargetHost = `-- name: DeactivateLinksByTargetHost :many
+WITH matched AS (
+	SELECT
+		id,
+		lower(substring(target_url from '^[A-Za-z][A-Za-z0-9+.-]*://(?:[^/?#@]*@)?([^/?#:]+)')) AS host
+	FROM links
+	WHERE is_active
+		AND deleted_at IS NULL
+)
+UPDATE links
+SET is_active = FALSE,
+	updated_at = CURRENT_TIMESTAMP
+FROM matched
+WHERE links.id = matched.id
+	AND (matched.host = lower($1::text) OR matched.host LIKE '%.' || lower($1::text))
+RETURNING links.slug
+`
+
+// Matches the host and its subdomains, ignoring any user info or port in the target URL.
+func (q *Queries) DeactivateLinksByTargetHost(ctx context.Context, host string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, deactivateLinksByTargetHost, host)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var slug string
+		if err := rows.Scan(&slug); err != nil {
+			return nil, err
+		}
+		items = append(items, slug)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLinkByID = `-- name: GetLinkByID :one
-SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
+SELECT id, user_id, slug, target_url, title, description, is_active, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 FROM links
 WHERE id = $1
 	AND deleted_at IS NULL
@@ -178,7 +250,6 @@ func (q *Queries) GetLinkByID(ctx context.Context, id int64) (Link, error) {
 		&i.Title,
 		&i.Description,
 		&i.IsActive,
-		&i.ClickCount,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -190,7 +261,7 @@ func (q *Queries) GetLinkByID(ctx context.Context, id int64) (Link, error) {
 }
 
 const getLinkBySlug = `-- name: GetLinkBySlug :one
-SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
+SELECT id, user_id, slug, target_url, title, description, is_active, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 FROM links
 WHERE slug = $1
 	AND is_active = TRUE
@@ -209,7 +280,6 @@ func (q *Queries) GetLinkBySlug(ctx context.Context, slug string) (Link, error) 
 		&i.Title,
 		&i.Description,
 		&i.IsActive,
-		&i.ClickCount,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -221,7 +291,7 @@ func (q *Queries) GetLinkBySlug(ctx context.Context, slug string) (Link, error) 
 }
 
 const listLinksByClaimTokens = `-- name: ListLinksByClaimTokens :many
-SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
+SELECT id, user_id, slug, target_url, title, description, is_active, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 FROM links
 WHERE claim_token_hash = ANY($1::text[])
 	AND deleted_at IS NULL
@@ -245,7 +315,6 @@ func (q *Queries) ListLinksByClaimTokens(ctx context.Context, claimTokenHashes [
 			&i.Title,
 			&i.Description,
 			&i.IsActive,
-			&i.ClickCount,
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -267,7 +336,7 @@ func (q *Queries) ListLinksByClaimTokens(ctx context.Context, claimTokenHashes [
 }
 
 const listLinksByUser = `-- name: ListLinksByUser :many
-SELECT id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
+SELECT id, user_id, slug, target_url, title, description, is_active, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 FROM links
 WHERE user_id = $1
 	AND deleted_at IS NULL
@@ -298,7 +367,6 @@ func (q *Queries) ListLinksByUser(ctx context.Context, arg ListLinksByUserParams
 			&i.Title,
 			&i.Description,
 			&i.IsActive,
-			&i.ClickCount,
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -343,7 +411,7 @@ SET target_url = COALESCE($2, target_url),
 	updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 	AND deleted_at IS NULL
-RETURNING id, user_id, slug, target_url, title, description, is_active, click_count, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
+RETURNING id, user_id, slug, target_url, title, description, is_active, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 `
 
 type UpdateLinkParams struct {
@@ -373,7 +441,6 @@ func (q *Queries) UpdateLink(ctx context.Context, arg UpdateLinkParams) (Link, e
 		&i.Title,
 		&i.Description,
 		&i.IsActive,
-		&i.ClickCount,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,

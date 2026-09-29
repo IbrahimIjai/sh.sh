@@ -1,6 +1,8 @@
 package analytics
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"net/netip"
 	"strings"
@@ -8,13 +10,14 @@ import (
 	"unicode/utf8"
 )
 
-// Click is one visit to a short link, with the raw IP and full referrer URL already dropped.
-// String fields are "" when unknown.
+// Click is one visit to a short link. The raw IP, user agent and full referrer URL are already
+// reduced to a daily visitor hash and parsed fields. String fields are "" when unknown.
 type Click struct {
+	// EventID and CreatedAt identify the click in storage: writing it again is a no-op.
+	EventID     string
 	CreatedAt   time.Time
 	LinkID      int64
 	VisitorHash string
-	UserAgent   string
 	RefererHost string
 	Source      string
 	UTMSource   string
@@ -55,13 +58,13 @@ func (c *Collector) Collect(r *http.Request, clientIP string, linkID int64) Clic
 	refererHost := RefererHost(r.Referer(), c.cfg.OwnHost)
 	query := r.URL.Query()
 	country, city := c.locate(r, clientIP)
-	now := c.now()
+	now := c.now().Truncate(time.Microsecond)
 
 	return Click{
+		EventID:     NewEventID(),
 		CreatedAt:   now,
 		LinkID:      linkID,
 		VisitorHash: c.cfg.Hasher.Visitor(clientIP, userAgent, now),
-		UserAgent:   truncate(userAgent, 512),
 		RefererHost: truncate(refererHost, 255),
 		Source:      truncate(Source(refererHost, ua.App), 255),
 		UTMSource:   truncate(query.Get("utm_source"), 255),
@@ -108,4 +111,23 @@ func truncate(s string, n int) string {
 		n--
 	}
 	return s[:n]
+}
+
+// NewEventID returns a random UUID (version 4).
+func NewEventID() string {
+	var b [16]byte
+	rand.Read(b[:])
+	b[6] = b[6]&0x0f | 0x40
+	b[8] = b[8]&0x3f | 0x80
+	var out [36]byte
+	hex.Encode(out[0:8], b[0:4])
+	out[8] = '-'
+	hex.Encode(out[9:13], b[4:6])
+	out[13] = '-'
+	hex.Encode(out[14:18], b[6:8])
+	out[18] = '-'
+	hex.Encode(out[19:23], b[8:10])
+	out[23] = '-'
+	hex.Encode(out[24:], b[10:])
+	return string(out[:])
 }

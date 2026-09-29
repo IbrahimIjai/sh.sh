@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/url"
 	"os"
@@ -11,10 +12,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ibrahimijai/sh.sh/internal/analytics"
 	"github.com/ibrahimijai/sh.sh/internal/auth"
+	"github.com/ibrahimijai/sh.sh/internal/clickstream"
 	"github.com/ibrahimijai/sh.sh/internal/config"
 	"github.com/ibrahimijai/sh.sh/internal/database"
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 	"github.com/ibrahimijai/sh.sh/internal/handler"
+	"github.com/ibrahimijai/sh.sh/internal/maintenance"
+	"github.com/ibrahimijai/sh.sh/internal/rediscache"
 	"github.com/ibrahimijai/sh.sh/internal/safety"
 	"github.com/ibrahimijai/sh.sh/internal/server"
 	"github.com/ibrahimijai/sh.sh/internal/service"
@@ -29,6 +33,9 @@ func main() {
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	conn, err := database.Open(cfg.DatabaseURL, cfg.DBMaxOpenConns, cfg.DBMaxIdleConns)
 	if err != nil {
@@ -64,22 +71,74 @@ func main() {
 		log.Println("web risk check disabled: WEB_RISK_API_KEY is not set")
 	}
 
+	// Interfaces stay nil without Redis; a nil *rediscache.Store inside them would not be.
+	var sharedCache service.SharedCache
+	var limiter service.RateLimiter
+	if cfg.RedisURL != "" {
+		store, err := rediscache.Open(cfg.RedisURL)
+		if store == nil {
+			log.Fatalf("invalid redis configuration: %v", err)
+		}
+		if err != nil {
+			log.Printf("redis unreachable at startup, falling back until it recovers: %v", err)
+		}
+		defer store.Close()
+		sharedCache, limiter = store, store
+		log.Println("redis: shared redirect cache, invalidation and rate limit enabled")
+	} else {
+		log.Println("redis disabled: REDIS_URL is not set")
+	}
+
 	baseHost := ""
 	if parsed, err := url.Parse(cfg.BaseURL); err == nil {
 		baseHost = parsed.Host
 	}
 
-	clicks := analytics.NewRecorder(queries, analytics.RecorderConfig{})
-	redirects := service.NewRedirectService(queries, service.RedirectConfig{
-		CacheSize: cfg.LinkCacheSize,
-		CacheTTL:  cfg.LinkCacheTTL,
+	clickStore := analytics.NewPostgresStore(conn, cfg.ClickAsyncCommit)
+	recorder := analytics.NewRecorder(clickStore, analytics.RecorderConfig{
+		BufferSize: cfg.ClickBufferSize,
+		BatchSize:  cfg.ClickBatchSize,
+		Writers:    cfg.ClickWriters,
 	})
-	log.Printf("link cache: size=%d ttl=%s", cfg.LinkCacheSize, cfg.LinkCacheTTL)
+	var clicks handler.ClickRecorder = recorder
+	closeClicks := recorder.Close
+	var stream *clickstream.Queue
+	if cfg.ClickQueue == "redis" {
+		// The recorder stays as the stream's fallback while Redis is down or the stream is over budget.
+		stream, err = clickstream.New(cfg.RedisURL, clickStore, recorder, clickstream.Config{
+			Buffer:    cfg.ClickBufferSize,
+			BatchSize: cfg.ClickBatchSize,
+			Consumers: cfg.ClickWriters,
+			MaxBytes:  int64(cfg.ClickStreamMaxMB) << 20,
+		})
+		if err != nil {
+			log.Fatalf("invalid click stream configuration: %v", err)
+		}
+		clicks = stream
+		closeClicks = func(ctx context.Context) error {
+			return errors.Join(stream.Close(ctx), recorder.Close(ctx))
+		}
+	}
+	log.Printf("clicks: queue=%s buffer=%d batch=%d writers=%d async_commit=%v stream_budget=%dMiB",
+		cfg.ClickQueue, cfg.ClickBufferSize, cfg.ClickBatchSize, cfg.ClickWriters, cfg.ClickAsyncCommit, cfg.ClickStreamMaxMB)
+
+	redirects := service.NewRedirectService(queries, service.RedirectConfig{
+		CacheSize:  cfg.LinkCacheSize,
+		CacheTTL:   cfg.LinkCacheTTL,
+		StaleFor:   cfg.LinkCacheStale,
+		MaxDBLoads: max(1, cfg.DBMaxOpenConns/2),
+		Shared:     sharedCache,
+	})
+	redirects.Start(ctx)
+	log.Printf("link cache: size=%d ttl=%s stale=%s", cfg.LinkCacheSize, cfg.LinkCacheTTL, cfg.LinkCacheStale)
+
 	links := service.NewLinkService(queries, service.LinkConfig{
-		Hasher:    hasher,
-		Safety:    urlChecker,
-		Redirects: redirects,
-		OwnHost:   baseHost,
+		Hasher:               hasher,
+		Safety:               urlChecker,
+		Redirects:            redirects,
+		Limiter:              limiter,
+		OwnHost:              baseHost,
+		MaxConcurrentReports: max(1, cfg.DBMaxOpenConns/4),
 	})
 	collector := analytics.NewCollector(analytics.CollectorConfig{
 		Hasher:     hasher,
@@ -88,25 +147,43 @@ func main() {
 		OwnHost:    baseHost,
 	})
 
+	maintainer := maintenance.New(conn, maintenance.Config{
+		RawRetentionDays: cfg.ClickRawRetentionDays,
+		Every:            cfg.MaintenanceInterval,
+	})
+	if err := maintainer.EnsurePartitions(ctx); err != nil {
+		log.Printf("maintenance: %v", err)
+	}
+	maintainer.Start(ctx)
+
 	if cfg.Env == "production" && len(cfg.TrustedProxies) == 0 && cfg.TrustedPlatform == "" {
 		log.Println("warning: TRUSTED_PROXIES and TRUSTED_PLATFORM are empty, so client IPs come from the TCP connection; " +
 			"behind a load balancer every visitor shares its IP, which breaks the anonymous rate limit and unique-visitor counts")
 	}
 
-	router, err := server.NewRouter(cfg, conn, authServer, server.Handlers{
+	handlers := server.Handlers{
 		Links:     handler.NewLinkHandler(links, cfg.BaseURL),
 		Redirects: handler.NewRedirectHandler(redirects, collector, clicks, cfg.BaseURL),
 		Domains:   handler.NewDomainHandler(service.NewDomainService(queries)),
-	})
+		Admin:     handler.NewAdminHandler(links),
+	}
+	if cfg.AdminToken == "" {
+		log.Println("admin API disabled: ADMIN_TOKEN is not set")
+	}
+	if cfg.MetricsAddr != "" {
+		m := service.NewMetrics()
+		m.Track(conn, redirects, recorder, stream)
+		handlers.Metrics = handler.RequestMetrics(m)
+		server.ServeInternal(ctx, cfg.MetricsAddr, handler.NewInternalHandler(m))
+	}
+
+	router, err := server.NewRouter(cfg, conn, authServer, handlers)
 	if err != nil {
 		log.Fatalf("failed to set up router: %v", err)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	// Requests stop first, then the click recorder writes out what they buffered.
-	if err := server.Run(ctx, ":"+cfg.Port, router, clicks.Close); err != nil {
+	// Requests stop first, then the click queue writes out what they buffered.
+	if err := server.Run(ctx, ":"+cfg.Port, router, closeClicks); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }

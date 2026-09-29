@@ -63,6 +63,32 @@ SET deleted_at = CURRENT_TIMESTAMP,
 WHERE id = $1
 	AND deleted_at IS NULL;
 
+-- name: DeactivateLinksBySlugs :many
+UPDATE links
+SET is_active = FALSE,
+	updated_at = CURRENT_TIMESTAMP
+WHERE slug = ANY(@slugs::text[])
+	AND is_active
+RETURNING slug;
+
+-- name: DeactivateLinksByTargetHost :many
+-- Matches the host and its subdomains, ignoring any user info or port in the target URL.
+WITH matched AS (
+	SELECT
+		id,
+		lower(substring(target_url from '^[A-Za-z][A-Za-z0-9+.-]*://(?:[^/?#@]*@)?([^/?#:]+)')) AS host
+	FROM links
+	WHERE is_active
+		AND deleted_at IS NULL
+)
+UPDATE links
+SET is_active = FALSE,
+	updated_at = CURRENT_TIMESTAMP
+FROM matched
+WHERE links.id = matched.id
+	AND (matched.host = lower(@host::text) OR matched.host LIKE '%.' || lower(@host::text))
+RETURNING links.slug;
+
 -- name: CountLinksByCreatorSince :one
 SELECT COUNT(*)
 FROM links

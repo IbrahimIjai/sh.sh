@@ -158,9 +158,13 @@ func TestLookupAndClaim(t *testing.T) {
 	created := decode[linkResponse](t, s.do(t, 0, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com"}, nil))
 	tokens := map[string][]string{"claim_tokens": {created.ClaimToken, "unknown-token"}}
 
+	s.queries.counters[created.ID] = 4
 	found := decode[[]linkResponse](t, s.do(t, 0, "POST", "/api/v1/links/lookup", tokens, nil))
 	if len(found) != 1 || found[0].ID != created.ID || found[0].ClaimToken != "" {
 		t.Fatalf("lookup = %+v, want the created link without its token", found)
+	}
+	if found[0].ClickCount != 4 {
+		t.Errorf("click_count = %d, want 4 from link_counters", found[0].ClickCount)
 	}
 
 	if w := s.do(t, 0, "POST", "/api/v1/links/claim", tokens, nil); w.Code != http.StatusUnauthorized {
@@ -201,7 +205,7 @@ func TestStats(t *testing.T) {
 
 	s.queries.totals = db.GetClickTotalsByLinkRow{Clicks: 5, UniqueVisitors: 3, BotClicks: 2}
 	s.queries.daily = []db.ListDailyClicksByLinkRow{{Day: time.Date(2026, 9, 20, 0, 0, 0, 0, time.UTC), Clicks: 5, UniqueVisitors: 3}}
-	s.queries.breakdown = []db.ListClickBreakdownByLinkRow{
+	s.queries.breakdown = []db.ListClickDimensionsByLinkRow{
 		{Dimension: "sources", Name: "X (Twitter)", Clicks: 3},
 		{Dimension: "sources", Name: "", Clicks: 2},
 		{Dimension: "countries", Name: "", Clicks: 5},
@@ -234,5 +238,69 @@ func TestStats(t *testing.T) {
 	}
 	if _, ok := stats.Breakdown["operating_systems"]; !ok {
 		t.Error("every dimension should be present even with no rows")
+	}
+}
+
+func TestStatsReportsAreCapped(t *testing.T) {
+	s := newTestServer(testOptions{maxReports: 1})
+	created := decode[linkResponse](t, s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com"}, nil))
+	path := "/api/v1/links/" + strconv.FormatInt(created.ID, 10) + "/stats"
+	gate := make(chan struct{})
+	s.queries.mu.Lock()
+	s.queries.statsGate = gate
+	s.queries.mu.Unlock()
+
+	codes := make(chan int, 2)
+	go func() { codes <- s.do(t, 1, "GET", path, nil, nil).Code }()
+	for s.queries.statsCalls() == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	go func() { codes <- s.do(t, 1, "GET", path, nil, nil).Code }()
+	time.Sleep(50 * time.Millisecond)
+	if n := s.queries.statsCalls(); n != 1 {
+		t.Fatalf("%d reports reached the database at once, want 1", n)
+	}
+	close(gate)
+	for range 2 {
+		if code := <-codes; code != http.StatusOK {
+			t.Errorf("status = %d, want 200 once the first report finished", code)
+		}
+	}
+}
+
+func TestStatsMergesRollupsAndRawClicks(t *testing.T) {
+	s := newTestServer(testOptions{})
+	created := decode[linkResponse](t, s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com"}, nil))
+	path := "/api/v1/links/" + strconv.FormatInt(created.ID, 10) + "/stats?days=7"
+	day := func(d int) time.Time { return time.Date(2026, 9, d, 0, 0, 0, 0, time.UTC) }
+
+	// Today is 2026-09-21. The 15th–19th are rolled up; the 20th is not, so raw clicks cover the 20th and 21st.
+	s.queries.rolledDays = []time.Time{day(15), day(16), day(17), day(18), day(19)}
+	s.queries.rollupTotals = db.GetRollupTotalsByLinkRow{Clicks: 40, UniqueVisitors: 30, BotClicks: 4}
+	s.queries.rollupDaily = []db.ListRollupDailyByLinkRow{{Day: day(16), Clicks: 40, UniqueVisitors: 30}}
+	s.queries.rollupDims = []db.ListRollupDimensionsByLinkRow{
+		{Dimension: "sources", Name: "Google", Clicks: 25},
+		{Dimension: "sources", Name: "X (Twitter)", Clicks: 15},
+	}
+	s.queries.totals = db.GetClickTotalsByLinkRow{Clicks: 5, UniqueVisitors: 3, BotClicks: 1}
+	s.queries.daily = []db.ListDailyClicksByLinkRow{{Day: day(21), Clicks: 5, UniqueVisitors: 3}}
+	s.queries.breakdown = []db.ListClickDimensionsByLinkRow{{Dimension: "sources", Name: "X (Twitter)", Clicks: 20}}
+
+	stats := decode[linkStatsResponse](t, s.do(t, 1, "GET", path, nil, nil))
+
+	if stats.Clicks != 45 || stats.UniqueVisitors != 33 || stats.BotClicks != 5 {
+		t.Errorf("totals = %d/%d/%d, want rollups plus raw 45/33/5", stats.Clicks, stats.UniqueVisitors, stats.BotClicks)
+	}
+	if got := s.queries.statsArgs[len(s.queries.statsArgs)-1]; !got.Equal(day(20)) {
+		t.Errorf("raw clicks read from %s, want 2026-09-20 (first day without a rollup)", got)
+	}
+	if w := s.queries.rollupWindows[len(s.queries.rollupWindows)-1]; !w.Since.Equal(day(15)) || !w.Until.Equal(day(20)) {
+		t.Errorf("rollup window = %s..%s, want 2026-09-15..2026-09-20", w.Since, w.Until)
+	}
+	if stats.Daily[1].Clicks != 40 || stats.Daily[6].Clicks != 5 {
+		t.Errorf("daily = %+v, want 40 on the 16th and 5 on the 21st", stats.Daily)
+	}
+	if got := stats.Breakdown["sources"]; len(got) != 2 || got[0].Name != "X (Twitter)" || got[0].Clicks != 35 || got[1].Clicks != 25 {
+		t.Errorf("sources = %+v, want X 35 (15 rolled + 20 raw) then Google 25", got)
 	}
 }

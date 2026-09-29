@@ -3,6 +3,8 @@ package cache
 import (
 	"context"
 	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -157,6 +159,100 @@ func TestOlderLoadCannotOverwriteNewerOne(t *testing.T) {
 	}
 	if len(c.loading) != 0 {
 		t.Errorf("%d in-flight records left behind", len(c.loading))
+	}
+}
+
+func TestSetReplacesRememberedMissAndEarlierLoad(t *testing.T) {
+	c := New[string](10, time.Minute, time.Minute)
+	c.Get(context.Background(), "a", load("", false))
+	c.Set("a", "created")
+	if v, found, _ := c.Get(context.Background(), "a", load("", false)); !found || v != "created" {
+		t.Fatalf("after Set: %q, found=%v; want created", v, found)
+	}
+
+	started, release, done := blockedLoad(c, "b", "old")
+	<-started
+	c.Set("b", "new")
+	close(release)
+	<-done
+	if v, _, _ := c.Get(context.Background(), "b", load("", false)); v != "new" {
+		t.Fatalf("a load that began before Set overwrote it with %q", v)
+	}
+}
+
+func TestConcurrentMissesShareOneLoad(t *testing.T) {
+	c := New[string](10, time.Minute, time.Second)
+	var loads atomic.Int32
+	release := make(chan struct{})
+	slow := func(context.Context, string) (string, bool, error) {
+		loads.Add(1)
+		<-release
+		return "A", true, nil
+	}
+
+	results := make(chan string, 20)
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Go(func() {
+			v, _, _ := c.Get(context.Background(), "a", slow)
+			results <- v
+		})
+	}
+	for c.Stats().Misses < 20 {
+		time.Sleep(time.Millisecond)
+	}
+	close(release)
+	wg.Wait()
+	close(results)
+
+	for v := range results {
+		if v != "A" {
+			t.Fatalf("got %q, want A", v)
+		}
+	}
+	if n := loads.Load(); n != 1 {
+		t.Fatalf("20 concurrent misses made %d loads, want 1", n)
+	}
+	if s := c.Stats(); s.Coalesced != 19 {
+		t.Errorf("coalesced = %d, want 19", s.Coalesced)
+	}
+}
+
+func TestServesStaleEntryWhenReloadFails(t *testing.T) {
+	c, now := newTestCache(10)
+	c.WithStale(time.Minute)
+	s := newFakeStore(map[string]string{"a": "A"})
+	get(t, c, s, "a")
+
+	s.err = errors.New("database down")
+	*now = now.Add(90 * time.Second)
+	if v, found, err := c.Get(context.Background(), "a", s.load); err != nil || !found || v != "A" {
+		t.Fatalf("within the stale window got %q, %v, %v; want the old entry", v, found, err)
+	}
+	if c.Stats().Stale != 1 {
+		t.Errorf("stale serves = %d, want 1", c.Stats().Stale)
+	}
+
+	*now = now.Add(time.Minute)
+	if _, _, err := c.Get(context.Background(), "a", s.load); err == nil {
+		t.Fatal("past the stale window the load error must surface")
+	}
+}
+
+func TestWaiterGivesUpWithoutCancellingTheLoad(t *testing.T) {
+	c := New[string](10, time.Minute, time.Second)
+	started, release, done := blockedLoad(c, "a", "A")
+	<-started
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, _, err := c.Get(ctx, "a", load("", false)); !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled waiter got %v, want context.Canceled", err)
+	}
+	close(release)
+	<-done
+	if v, found, _ := c.Get(context.Background(), "a", load("", false)); !found || v != "A" {
+		t.Fatalf("after the shared load finished got %q, %v; want A", v, found)
 	}
 }
 

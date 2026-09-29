@@ -2,16 +2,17 @@
 
 ## Article requirements and the current server
 
-`article.py` tests the current **single API + local LRU + PostgreSQL** implementation.
-Redis is proposed in `docs/010-claude-redis-postgres-multi-instance.md` but is not
-integrated into this server; starting an unused Redis container would not test it.
+`article.py` tests **one API instance with its local cache, Redis and PostgreSQL**, each in a
+disposable container. `REDIS_URL=` (empty) runs without Redis. Clicks go through the Redis stream
+by default; `CLICK_QUEUE=memory` measures the in-memory path instead. For several instances on
+separate machines, use `../proof`.
 The article workload is about **3,472 creations/sec + 34,722 redirects/sec**
 (300M creations and 3B redirects/day). Its 20-year storage requirement is excluded.
 Reporting rates and numeric latency targets below are our proposal, not article requirements.
 
 ```bash
 python3 server/scripts/load/article.py \
-  --profiles smoke --integration-tests --fault-checks \
+  --profiles smoke --integration-tests --review-probes --fault-checks \
   --output /tmp/sh-article-smoke
 
 python3 server/scripts/load/article.py \
@@ -25,6 +26,17 @@ and removes only its own containers and volumes. No production credentials,
 outbound email, destination visits, Web Risk calls, or development data are used.
 Run benchmarks sequentially to avoid competing with one another.
 
+Redis now runs with **AOF enabled and `appendfsync everysec`**, matching the proposed
+stream persistence mode. Older results using `appendonly no` do not measure its
+disk-write cost. `--integration-tests` supplies both `TEST_DATABASE_URL` and
+`TEST_REDIS_URL`, so the real Redis/PostgreSQL replay test runs instead of skipping.
+
+`--review-probes` runs additional desired-behavior tests in a separate source copy.
+They currently expose Redis deadline, failed-revocation, late-rollup and default-partition
+retention defects. Their failures are saved in `review-probes.json`/`.jsonl` and
+do not abort load stages; they must not be reported as passing tests. The production
+source is unchanged. Fixtures and the exact review source are preserved with results.
+
 - Functional probes cover concurrent custom/generated slugs, ownership, anonymous
   claims/quota, negative-cache invalidation, deletion, persisted expiry, UTM,
   previews, and human/bot analytics. Public expiry creation is not implemented.
@@ -35,8 +47,9 @@ Run benchmarks sequentially to avoid competing with one another.
   exact creation/analytics reconciliation, redirect median <5 ms / p99 <50 ms,
   and report p95 <500 ms. Creation latency is measured without an invented SLO.
   HTTP errors >=1% or redirect p99 >=2 s can abort after 15 s.
-- Fault checks deliberately kill the disposable API during a database outage to
-  measure volatile-queue loss, then measure healthy graceful drain and restart.
+- Fault checks kill the disposable API during a database outage, then measure how many of
+  its acknowledged clicks are stored after restart (with the stream, after the one-minute
+  takeover), a graceful drain, and restart time.
   The `outage` profile checks buffered analytics recovery without killing the API.
 - `results.json`, `functional.json`, `fault-checks.json`, optional `go-tests.log`,
   raw k6 summaries, resource samples, source snapshots and logs preserve evidence.
@@ -45,7 +58,7 @@ Run benchmarks sequentially to avoid competing with one another.
 
 Database sampling uses one short-lived diagnostic connection. Its `waiting` count
 includes idle connections waiting for clients; it is not an API connection-pool
-wait metric. The server does not yet expose `sql.DBStats` wait counters.
+wait metric; the API's own pool waits are `go_sql_wait_count_total` on `/metrics`.
 
 The same host drives and serves traffic; the API has 2 CPU / 512 MiB limits and
 PostgreSQL 2 CPU / 1 GiB. These runs exclude Traefik, TLS and WAN latency, and do
@@ -59,16 +72,12 @@ If the creation generator exhausts its VUs, repeat with
 `--profiles creation-confirmation --create-vus 400`. More VUs mean more generator
 workers, not more API instances. Preserve both results, including failed attempts.
 
-To reproduce the current stale-fill ordering bug without editing the server:
+The stale-fill ordering bug (an earlier lookup repopulating a key after `Forget`) is fixed;
+`cache_review.py` saves its standalone Go regression probe and result:
 
 ```bash
 python3 server/scripts/load/cache_review.py --output /tmp/sh-cache-review
 ```
-
-This saves a standalone Go regression probe and its result. The probe currently
-fails because an earlier lookup can repopulate a key after `Forget`; the Python
-command succeeds when it has recorded that finding. This is a logical race,
-not an unsynchronized memory access detected by Go's race detector.
 
 ## Original redirect ramp
 

@@ -113,10 +113,13 @@ def main():
         plans = []
         for user in sorted({1, 2, args.users}):
             link_id = 1+(user-1)*args.links_per_user
-            for name in ['GetClickTotalsByLink', 'ListDailyClicksByLink', 'ListClickBreakdownByLink']:
-                statement = blocks[name].replace('$1',str(link_id)).replace('$2','(CURRENT_DATE - 29)')
-                statement = statement.replace('@link_id',str(link_id)).replace('@since','(CURRENT_DATE - 29)').replace('@per_dimension','10')
-                item = {'user':user,'link_id':link_id,'query':name,'days':30}
+            # A 30-day report reads rollups for the closed days and raw clicks for today.
+            for name, since in [('GetRollupTotalsByLink','CURRENT_DATE - 29'), ('ListRollupDailyByLink','CURRENT_DATE - 29'),
+                                ('ListRollupDimensionsByLink','CURRENT_DATE - 29'), ('GetClickTotalsByLink','CURRENT_DATE'),
+                                ('ListDailyClicksByLink','CURRENT_DATE'), ('ListClickDimensionsByLink','CURRENT_DATE')]:
+                statement = blocks[name].replace('$1',str(link_id)).replace('$2',f'({since})')
+                statement = statement.replace('@link_id',str(link_id)).replace('@since',f'({since})').replace('@until','(CURRENT_DATE)')
+                item = {'user':user,'link_id':link_id,'query':name,'since':since}
                 try:
                     raw = sql("SET statement_timeout='30s'; EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) "+statement)
                     item['plan'] = json.loads(raw[raw.index('['):])[0]
@@ -131,7 +134,7 @@ def main():
 
     def execute(label, active, duration, burst=0):
         stage['name'] = label
-        baseline_counter = int(sql('SELECT coalesce(sum(click_count),0) FROM links;'))
+        baseline_counter = int(sql('SELECT coalesce(sum(human_clicks),0) FROM link_counters;'))
         print(f'{label}: {active} dashboards / {args.refresh_seconds}s = {active/args.refresh_seconds:.2f} stats/s; '
               f'{args.redirect_rate} redirects/s; {duration}s; burst={burst}', flush=True)
         values = {'ACTIVE_DASHBOARDS':active, 'REFRESH_SECONDS':args.refresh_seconds, 'DURATION':f'{duration}s',
@@ -160,7 +163,7 @@ def main():
             if actual[0] >= expected[0]:
                 break
             time.sleep(1)
-        counter = int(sql('SELECT coalesce(sum(click_count),0) FROM links;'))-baseline_counter
+        counter = int(sql('SELECT coalesce(sum(human_clicks),0) FROM link_counters;'))-baseline_counter
         # Full ownership and large-history checks run before and after the load stages.
         row = {
             'stage':label, 'active_dashboards':active, 'target_stats_rps':active/args.refresh_seconds,
@@ -206,7 +209,7 @@ def main():
             run(compose+['build','api'],stdout=log,stderr=subprocess.STDOUT)
         # Pull before measuring anything so network/image startup cannot distort a load stage.
         run(docker+['pull','curlimages/curl:8.12.1'],stdout=subprocess.DEVNULL)
-        run(compose+['up','-d','--wait','db'])
+        run(compose+['up','-d','--wait','db','redis'])
         for migration in sorted((SERVER/'db/migrations').glob('*.sql')):
             sql(migration.read_text().split('-- +goose Down')[0])
         print(f'Seeding {args.users:,} accounts, {links:,} links, {args.history:,} clicks...',flush=True)
@@ -222,13 +225,13 @@ def main():
         third = args.history//3
         for start in range(1,args.history+1,100000):
             end = min(start+99999,args.history)
-            sql(f"""INSERT INTO clicks (link_id,created_at,visitor_hash,user_agent,referer_host,source,utm_source,
+            sql(f"""INSERT INTO clicks (link_id,created_at,visitor_hash,referer_host,source,utm_source,
                         utm_medium,utm_campaign,device_type,browser,os,country,city,is_bot)
                 SELECT CASE WHEN i<={third} THEN 1 WHEN i<={2*third} THEN 1+(1+(i%{popular-1}))*{args.links_per_user}
                             ELSE 1+(i%{args.users})*{args.links_per_user} END,
                     date_trunc('day',now())-((i%90)*interval '1 day')+((i%3600)*interval '1 second'),
                     md5((i%10000)::text||':'||(i%90)::text)||md5((i%10000)::text||':'||(i%90)::text),
-                    'Synthetic historical browser', 'example.com',
+                    'example.com',
                     (ARRAY['Direct','X (Twitter)','Facebook','Google'])[1+(i%4)],
                     (ARRAY['newsletter','social','search'])[1+(i%3)], 'synthetic', 'seed-history',
                     (ARRAY['desktop','mobile'])[1+(i%2)], 'Firefox', 'Linux',
@@ -236,7 +239,8 @@ def main():
                 FROM generate_series({start},{end}) i;""")
             if end%500000==0 or end==args.history:
                 print(f'Historical clicks seeded: {end:,}/{args.history:,}',flush=True)
-        sql("UPDATE links SET click_count=t.n FROM (SELECT link_id,count(*) AS n FROM clicks WHERE NOT is_bot GROUP BY link_id) t WHERE links.id=t.link_id;")
+        sql("INSERT INTO link_counters (link_id,human_clicks) SELECT link_id,count(*) FROM clicks WHERE NOT is_bot GROUP BY link_id "
+            "ON CONFLICT (link_id) DO UPDATE SET human_clicks=EXCLUDED.human_clicks;")
         sql('VACUUM ANALYZE;')
         (out/'seed.json').write_text(sql("SELECT json_build_object('users',(SELECT count(*) FROM users),'sessions',(SELECT count(*) FROM sessions),"
             "'links',(SELECT count(*) FROM links),'clicks',(SELECT count(*) FROM clicks),'largest_link_clicks',(SELECT count(*) FROM clicks WHERE link_id=1),'bytes',pg_database_size(current_database()));")+'\n')
@@ -248,6 +252,18 @@ def main():
             time.sleep(1)
         else:
             raise RuntimeError('API never became healthy')
+        # The API's startup maintenance pass rolls up the seeded history; it holds advisory lock
+        # 7461001 until the pass ends.
+        print('Rolling up seeded history...',flush=True)
+        for _ in range(900):
+            if sql("SELECT EXISTS (SELECT 1 FROM click_rollup_days) AND NOT EXISTS "
+                   "(SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=7461001);") == 't':
+                break
+            time.sleep(1)
+        else:
+            raise RuntimeError('the startup maintenance pass never finished')
+        (out/'maintenance.json').write_text(sql("SELECT json_build_object('rolled_days',(SELECT count(*) FROM click_rollup_days),"
+            "'daily_rows',(SELECT count(*) FROM click_daily),'dimension_rows',(SELECT count(*) FROM click_daily_dims));")+'\n')
         ids = run(compose+['ps','-q'],capture_output=True).stdout.split()
         containers = json.loads(run(docker+['inspect']+ids,capture_output=True).stdout)
         meta['containers'] = [{'name':c['Name'],'image':c['Image'],'cpu_limit':c['HostConfig']['NanoCpus']/1e9,
@@ -277,7 +293,7 @@ def main():
             stage['name']='post-load-query-profiling'
             profile_queries()
         (out/'database.json').write_text(sql("SELECT json_build_object('bytes',pg_database_size(current_database()),'clicks',(SELECT count(*) FROM clicks),"
-            "'batch_receipts',(SELECT count(*) FROM click_batches),'temp_bytes',temp_bytes,'deadlocks',deadlocks) FROM pg_stat_database WHERE datname=current_database();")+'\n')
+            "'distinct_events',(SELECT count(DISTINCT event_id) FROM clicks),'temp_bytes',temp_bytes,'deadlocks',deadlocks) FROM pg_stat_database WHERE datname=current_database();")+'\n')
         print('Completed. All sampled final analytics matched PostgreSQL.',flush=True)
     finally:
         stop.set()

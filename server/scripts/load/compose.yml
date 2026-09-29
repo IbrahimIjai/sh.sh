@@ -12,6 +12,16 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+  redis:
+    image: redis:7.2-alpine
+    cpus: 0.5
+    mem_limit: 256m
+    command: [redis-server, --maxmemory, 200mb, --maxmemory-policy, volatile-lru, --save, "", --appendonly, "yes", --appendfsync, everysec]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 1s
+      timeout: 3s
+      retries: 30
   api:
     build:
       context: ../..
@@ -25,6 +35,11 @@ services:
       LIMEN_SECRET: "0123456789abcdef0123456789abcdef"
       EMAIL_PROVIDER: resend
       LINK_CACHE_SIZE: ${LINK_CACHE_SIZE:-100000}
+      # Set REDIS_URL= (empty) to benchmark without Redis.
+      REDIS_URL: ${REDIS_URL-redis://redis:6379/0}
+      ADMIN_TOKEN: local-benchmark-admin-token-0123456789
+      REQUEST_LOG: ${REQUEST_LOG:-all}
+      CLICK_QUEUE: ${CLICK_QUEUE:-}
     logging:
       driver: json-file
       options:

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Article workload benchmark: one isolated API + current cache + disposable PostgreSQL.
+"""Article workload benchmark: one isolated API, Redis and PostgreSQL in disposable containers.
 
 No development credentials, database or running containers are used. Profiles are local HTTP
-experiments, not claims of daily capacity. Redis is explicitly absent until the API integrates it.
+experiments, not claims of daily capacity. REDIS_URL= (empty) runs without Redis; CLICK_QUEUE picks
+the click path (redis stream by default when Redis is on, or memory).
 """
 import argparse
 from datetime import datetime, timezone
@@ -67,6 +68,7 @@ def main():
     p.add_argument('--create-vus', type=int, default=100)
     p.add_argument('--stats-vus', type=int, default=50)
     p.add_argument('--integration-tests', action='store_true')
+    p.add_argument('--review-probes', action='store_true', help='Record targeted regression probes in a separate source copy; findings do not abort load stages')
     p.add_argument('--fault-checks', action='store_true', help='Also prove API-crash loss and graceful drain in isolated stack')
     p.add_argument('--skip-functional', action='store_true')
     p.add_argument('--output', type=Path, required=True)
@@ -110,10 +112,12 @@ def main():
     for src in HERE.glob('*'):
         if src.is_file() and src.suffix in ('.py', '.js', '.json', '.yml'):
             shutil.copy2(src, scripts/src.name)
+    shutil.copytree(HERE/'review_tests', scripts/'review_tests')
     override = out/'compose.override.json'
     override.write_text(json.dumps({'services': {
         'api': {'build': {'context': str(snapshot)}, 'ports': ['127.0.0.1::8080']},
         'db': {'ports': ['127.0.0.1::5432']},
+        'redis': {'ports': ['127.0.0.1::6379']},
     }}))
     compose = docker + ['compose', '-p', project, '-f', str(scripts/'compose.yml'), '-f', str(override)]
     stop = threading.Event()
@@ -127,7 +131,9 @@ def main():
             'source_sha256': hashes, 'host': platform.platform(), 'logical_cpus': os.cpu_count(),
             'cpu': run(['lscpu'], capture_output=True).stdout,
             'command': sys.argv, 'stages': stages, 'links': args.links,
-            'topology': {'api_instances': 1, 'lru': True, 'redis': 'NOT IMPLEMENTED', 'postgres_instances': 1},
+            'topology': {'api_instances': 1, 'lru': True, 'redis': os.environ.get('REDIS_URL', 'redis://redis:6379/0') or 'disabled',
+                         'postgres_instances': 1, 'request_log': os.environ.get('REQUEST_LOG', 'all'),
+                         'click_queue': os.environ.get('CLICK_QUEUE') or ('redis' if os.environ.get('REDIS_URL', 'x') else 'memory')},
             'scope': 'Local Docker HTTP; no Traefik/TLS, remote network, email or Web Risk. Authenticated creates each followed by one preview read. Same host generator. No 20-year retention target.',
             'thresholds': 'Local redirect median<5ms/p99<50ms and report p95<500ms are proposal targets, not article-specified SLOs. Abort above 1% HTTP errors or 2s redirect p99 after 15s.'}
 
@@ -207,8 +213,15 @@ def main():
             run(compose + ['up', '-d', '--wait', 'db'], capture_output=True)
         run(compose + ['start', 'api'], capture_output=True)
         wait_ready()
+        began = time.monotonic()
+        # Stream entries the killed instance held are taken over once idle for a minute.
+        while (meta['topology']['click_queue'] == 'redis' and counts('crash-proof')[0] < delivered
+               and time.monotonic() - began < 120):
+            time.sleep(1)
         evidence['api_crash'] = {'redirects_acknowledged': delivered, 'stored_events': counts('crash-proof')[0],
-                                 'note': 'Database stopped before requests; API killed before database recovery. Intentional volatile-queue loss probe.'}
+                                 'seconds_waited_after_restart': round(time.monotonic() - began, 1),
+                                 'click_queue': meta['topology']['click_queue'],
+                                 'note': 'Database stopped before requests; API killed before database recovery.'}
         delivered = sum(api('/bench-1?utm_campaign=graceful-proof')[0] == 302 for _ in range(100))
         run(compose + ['stop', '-t', '20', 'api'], capture_output=True)
         evidence['graceful_shutdown'] = {'redirects_acknowledged': delivered, 'stored_events': counts('graceful-proof')[0]}
@@ -222,19 +235,27 @@ def main():
         print(f'Building frozen source in isolated project {project}', flush=True)
         with (out/'build.log').open('w') as f:
             run(compose + ['build', 'api'], stdout=f, stderr=subprocess.STDOUT)
-        run(compose + ['up', '-d', '--wait', 'db'], capture_output=True)
+        run(compose + ['up', '-d', '--wait', 'db', 'redis'], capture_output=True)
         for migration in sorted((snapshot/'db/migrations').glob('*.sql')):
             sql(migration.read_text().split('-- +goose Down')[0])
         sql("INSERT INTO users (id,email,email_verified_at,updated_at) VALUES (1,'article1@example.com',now(),now()),(2,'article2@example.com',now(),now());"
             "SELECT setval(pg_get_serial_sequence('users','id'),2);"
             "INSERT INTO sessions (token,user_id,created_at,expires_at,last_access) SELECT 'article-session-'||i,i,now(),now()+interval '1 day',now() FROM generate_series(1,2) i;"
             f"INSERT INTO links (user_id,slug,target_url) SELECT 1,'bench-'||i,'https://example.com/benchmark/'||i FROM generate_series(1,{args.links}) i;")
-        if args.integration_tests:
+        if args.integration_tests or args.review_probes:
             port = run(compose + ['port', 'db', '5432'], capture_output=True).stdout.strip().rsplit(':', 1)[1]
+            redis_port = run(compose + ['port', 'redis', '6379'], capture_output=True).stdout.strip().rsplit(':', 1)[1]
+            test_env = {**os.environ,
+                        'TEST_DATABASE_URL': f'postgres://postgres:local-benchmark-only@127.0.0.1:{port}/benchmark?sslmode=disable',
+                        'TEST_REDIS_URL': f'redis://127.0.0.1:{redis_port}/0'}
+        if args.integration_tests:
             with (out/'go-tests.log').open('w') as f:
                 run(['go', 'test', '-race', '-count=1', '-v', './...'], cwd=snapshot,
-                    env={**os.environ, 'TEST_DATABASE_URL': f'postgres://postgres:local-benchmark-only@127.0.0.1:{port}/benchmark?sslmode=disable'},
+                    env=test_env,
                     stdout=f, stderr=subprocess.STDOUT)
+        if args.review_probes:
+            from review_probes import run_probes
+            run_probes(snapshot, out, test_env, scripts/'review_tests')
         run(compose + ['up', '-d', '--no-deps', 'api'], capture_output=True)
         address = run(compose + ['port', 'api', '8080'], capture_output=True).stdout.strip()
         base = 'http://' + address
@@ -257,7 +278,7 @@ def main():
         for stage in stages:
             label = stage['name']
             current['stage'] = label
-            before = int(sql('SELECT coalesce(sum(click_count),0) FROM links;'))
+            before = int(sql('SELECT coalesce(sum(human_clicks),0) FROM link_counters;'))
             api('/bench-1+')
             print(f'Stage {label}: {stage}', flush=True)
             command = docker + ['run', '--rm', '--name', project+'-k6', '--network', project+'_default',
@@ -296,7 +317,7 @@ def main():
                 if actual == expected or time.monotonic() - settle >= 45:
                     break
                 time.sleep(1)
-            after = int(sql('SELECT coalesce(sum(click_count),0) FROM links;'))
+            after = int(sql('SELECT coalesce(sum(human_clicks),0) FROM link_counters;'))
             created = [int(x) for x in sql(f"SELECT count(*),count(DISTINCT slug),count(DISTINCT target_url) FROM links WHERE target_url LIKE 'https://example.com/article/{label}/%';").split('|')]
             stats_checks = []
             for link_id in sorted({1, min(2, args.links), args.links}):
@@ -315,7 +336,7 @@ def main():
             (out/'results.json').write_text(json.dumps(results, indent=2))
             print(json.dumps(result), flush=True)
             time.sleep(3)
-        (out/'database.json').write_text(sql("SELECT json_build_object('bytes',pg_database_size(current_database()),'links',(SELECT count(*) FROM links),'clicks',(SELECT count(*) FROM clicks),'receipts',(SELECT count(*) FROM click_batches));"))
+        (out/'database.json').write_text(sql("SELECT json_build_object('bytes',pg_database_size(current_database()),'links',(SELECT count(*) FROM links),'clicks',(SELECT count(*) FROM clicks),'distinct_events',(SELECT count(DISTINCT event_id) FROM clicks));"))
     finally:
         stop.set()
         if monitor_thread:

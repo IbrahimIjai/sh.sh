@@ -15,6 +15,10 @@ type Handlers struct {
 	Links     *handler.LinkHandler
 	Redirects *handler.RedirectHandler
 	Domains   *handler.DomainHandler
+	// Admin routes exist only when both this and cfg.AdminToken are set.
+	Admin *handler.AdminHandler
+	// Metrics, when set, records every request.
+	Metrics gin.HandlerFunc
 }
 
 func NewRouter(cfg config.Config, pinger handler.Pinger, authServer *auth.Server, h Handlers) (*gin.Engine, error) {
@@ -33,7 +37,10 @@ func NewRouter(cfg config.Config, pinger handler.Pinger, authServer *auth.Server
 		return nil, fmt.Errorf("unsupported TRUSTED_PLATFORM %q (supported: cloudflare)", cfg.TrustedPlatform)
 	}
 
-	r.Use(gin.Logger())
+	if h.Metrics != nil {
+		r.Use(h.Metrics)
+	}
+	r.Use(middleware.RequestLog(cfg.RequestLog))
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORS(cfg.AppURL))
 
@@ -75,6 +82,13 @@ func NewRouter(cfg config.Config, pinger handler.Pinger, authServer *auth.Server
 			domains.POST("", h.Domains.Create)
 			domains.GET("", h.Domains.List)
 			domains.DELETE("/:id", h.Domains.Delete)
+		}
+
+		if h.Admin != nil && cfg.AdminToken != "" {
+			admin := v1.Group("/admin", middleware.AdminToken(cfg.AdminToken))
+			{
+				admin.POST("/takedown", h.Admin.Takedown)
+			}
 		}
 	}
 

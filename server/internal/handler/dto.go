@@ -41,7 +41,7 @@ type linkResponse struct {
 	ClaimToken string `json:"claim_token,omitempty"`
 }
 
-func newLinkResponse(baseURL string, link db.Link) linkResponse {
+func newLinkResponse(baseURL string, link db.Link, clicks int64) linkResponse {
 	return linkResponse{
 		ID:          link.ID,
 		Slug:        link.Slug,
@@ -50,17 +50,17 @@ func newLinkResponse(baseURL string, link db.Link) linkResponse {
 		Title:       stringPtr(link.Title),
 		Description: stringPtr(link.Description),
 		IsActive:    link.IsActive,
-		ClickCount:  link.ClickCount,
+		ClickCount:  clicks,
 		ExpiresAt:   timePtr(link.ExpiresAt),
 		CreatedAt:   link.CreatedAt,
 		UpdatedAt:   link.UpdatedAt,
 	}
 }
 
-func newLinkResponses(baseURL string, links []db.Link) []linkResponse {
+func newLinkResponses(baseURL string, links []service.LinkSummary) []linkResponse {
 	responses := make([]linkResponse, 0, len(links))
-	for _, link := range links {
-		responses = append(responses, newLinkResponse(baseURL, link))
+	for _, summary := range links {
+		responses = append(responses, newLinkResponse(baseURL, summary.Link, summary.Clicks))
 	}
 	return responses
 }

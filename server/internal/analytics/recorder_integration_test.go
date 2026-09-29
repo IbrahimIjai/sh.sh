@@ -82,7 +82,7 @@ func TestRecorderPostgres(t *testing.T) {
 		t.Helper()
 		var total, humans, bots, counter int
 		err := conn.QueryRow(`SELECT count(*), count(*) FILTER (WHERE NOT is_bot), count(*) FILTER (WHERE is_bot),
-			(SELECT click_count FROM links WHERE id=$1) FROM clicks WHERE link_id=$1`, id).Scan(&total, &humans, &bots, &counter)
+			(SELECT coalesce(max(human_clicks), 0) FROM link_counters WHERE link_id=$1) FROM clicks WHERE link_id=$1`, id).Scan(&total, &humans, &bots, &counter)
 		if err != nil || total != 2 || humans != 1 || bots != 1 || counter != 1 {
 			t.Fatalf("clicks/humans/bots/counter = %d/%d/%d/%d, err=%v", total, humans, bots, counter, err)
 		}
@@ -92,28 +92,29 @@ func TestRecorderPostgres(t *testing.T) {
 		t.Run(failure, func(t *testing.T) {
 			id := newLink(t)
 			attempts := 0
-			var batchID string
-			store := clickStoreFunc(func(ctx context.Context, arg db.RecordClicksParams) error {
+			var duplicates int64
+			store := clickStoreFunc(func(ctx context.Context, arg db.RecordClicksParams) (int64, error) {
 				attempts++
-				batchID = arg.BatchID
 				if attempts == 1 && failure == "statement rollback" {
-					// Violate a real column constraint after the receipt INSERT. The
-					// entire statement, including that receipt, must roll back.
+					// Violate a real column constraint in the middle of the statement. The whole
+					// statement, including the counter update, must roll back.
 					arg.Countries = []string{"TOO-LONG", ""}
-					err := queries.RecordClicks(ctx, arg)
+					_, err := queries.RecordClicks(ctx, arg)
 					if err == nil {
 						t.Error("expected a country length error")
 					}
-					return err
+					return 0, err
 				}
-				if err := queries.RecordClicks(ctx, arg); err != nil {
-					return err
+				inserted, err := queries.RecordClicks(ctx, arg)
+				if err != nil {
+					return 0, err
 				}
+				duplicates += int64(len(arg.LinkIds)) - inserted
 				if attempts == 1 {
 					// PostgreSQL committed, but the application sees a broken connection.
-					return io.ErrUnexpectedEOF
+					return 0, io.ErrUnexpectedEOF
 				}
-				return nil
+				return inserted, nil
 			})
 			recorder := NewRecorder(store, RecorderConfig{BatchSize: 2, RetryMin: time.Millisecond})
 			at := time.Date(2026, 9, 21, 23, 59, 59, 0, time.UTC)
@@ -128,23 +129,35 @@ func TestRecorderPostgres(t *testing.T) {
 				t.Fatalf("attempts = %d, want 2", attempts)
 			}
 			checkCounts(t, id)
-			var receipts, originalTimes int
-			if err := conn.QueryRow("SELECT count(*) FROM click_batches WHERE id=$1", batchID).Scan(&receipts); err != nil || receipts != 1 {
-				t.Fatalf("receipts=%d, err=%v", receipts, err)
+			wantDuplicates := map[string]int64{"lost acknowledgement": 2, "statement rollback": 0}[failure]
+			if duplicates != wantDuplicates {
+				t.Fatalf("the retry found %d clicks already stored, want %d", duplicates, wantDuplicates)
 			}
-			if err := conn.QueryRow("SELECT count(*) FROM clicks WHERE link_id=$1 AND created_at=$2", id, at).Scan(&originalTimes); err != nil || originalTimes != 2 {
-				t.Fatalf("original timestamps=%d, err=%v", originalTimes, err)
+			var originalTimes int
+			if err := conn.QueryRow("SELECT count(*) FROM clicks WHERE link_id=$1 AND created_at=$2 AND event_id IS NOT NULL", id, at).Scan(&originalTimes); err != nil || originalTimes != 2 {
+				t.Fatalf("stored with original timestamps and event IDs = %d, err=%v", originalTimes, err)
 			}
 		})
 	}
+
+	t.Run("async commit store with two writers", func(t *testing.T) {
+		id := newLink(t)
+		recorder := NewRecorder(NewPostgresStore(conn, true), RecorderConfig{BatchSize: 2, Writers: 2})
+		recorder.Record(Click{LinkID: id, VisitorHash: "human"})
+		recorder.Record(Click{LinkID: id, IsBot: true})
+		if err := recorder.Close(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		checkCounts(t, id)
+	})
 
 	t.Run("concurrent replay", func(t *testing.T) {
 		id := newLink(t)
 		// Capture the real recorder payload, then submit the same batch concurrently.
 		var batch db.RecordClicksParams
-		recorder := NewRecorder(clickStoreFunc(func(_ context.Context, arg db.RecordClicksParams) error {
+		recorder := NewRecorder(clickStoreFunc(func(_ context.Context, arg db.RecordClicksParams) (int64, error) {
 			batch = arg
-			return nil
+			return 2, nil
 		}), RecorderConfig{BatchSize: 2})
 		recorder.Record(Click{LinkID: id})
 		recorder.Record(Click{LinkID: id, IsBot: true})
@@ -156,7 +169,7 @@ func TestRecorderPostgres(t *testing.T) {
 		defer cancel()
 		for range 8 {
 			wg.Go(func() {
-				if err := queries.RecordClicks(ctx, batch); err != nil {
+				if _, err := queries.RecordClicks(ctx, batch); err != nil {
 					t.Errorf("replay: %v", err)
 				}
 			})

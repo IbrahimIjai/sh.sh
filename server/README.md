@@ -1,8 +1,14 @@
 # sh.sh server
 
-URL shortener API built with Go, Gin, PostgreSQL, [sqlc](https://sqlc.dev) for typed queries,
-[goose](https://github.com/pressly/goose) for migrations, and [limen](https://github.com/thecodearcher/limen)
+URL shortener API built with Go, Gin, PostgreSQL, optional Redis, [sqlc](https://sqlc.dev) for typed
+queries, [goose](https://github.com/pressly/goose) for migrations, and [limen](https://github.com/thecodearcher/limen)
 for auth (magic link + Google OAuth).
+
+Code layout: `cmd/api` (wiring), `internal/server` (routes, shutdown, metrics listener),
+`internal/middleware`, `internal/handler` (HTTP only), `internal/service` (business rules),
+`internal/db/generated` (sqlc), plus `cache`, `rediscache`, `analytics`, `clickstream` and `maintenance`.
+Metrics live in `service/metrics.go` (what is counted) and `handler/metrics.go` (request timing and the
+internal `/metrics` listener). `scripts/load` and `scripts/proof` are the benchmark harnesses.
 
 ## How to run locally
 
@@ -51,14 +57,15 @@ are recycled after 30 minutes. Invalid pool settings stop startup with an error.
 Across replicas, keep the combined connection budget below PostgreSQL's limit,
 leaving room for migrations and administration.
 
-### 3. Start the database
+### 3. Start the database and Redis
 
 ```sh
-docker compose up -d db
+docker compose up -d db redis
 ```
 
 Postgres 17 listens on host port **5434** (5432/5433 are assumed taken), with data persisted
-in the `pgdata` volume.
+in the `pgdata` volume. Redis listens on host port **6380**; set `REDIS_URL=redis://localhost:6380/0`
+in `.env` to use it from `go run`. Without `REDIS_URL` the API runs with its in-process cache only.
 
 ### 4. Run migrations (goose)
 
@@ -147,6 +154,10 @@ docker compose down -v         # stop and wipe the Postgres volume
 | `DELETE /api/v1/links/:id` | session | Soft-delete one of your links. |
 | `GET /{slug}` | none | 302 to the target. UTM tags on the short link are recorded and passed on to the target. |
 | `GET /{slug}+` | none | Preview page: shows where the link goes without redirecting. |
+| `POST /api/v1/admin/takedown` | admin token | `{"slugs": [...]}` and/or `{"target_host": "bad.example"}` (subdomains included) → deactivates the links and stops them redirecting on every instance. |
+
+Admin routes exist only when `ADMIN_TOKEN` is set (32+ characters) and need
+`Authorization: Bearer <token>`.
 
 Custom slugs are 3–64 letters, digits, `-` or `_`, and can't be a reserved word (`api`, `auth`, `health`, ...).
 Links pointing at our own domain or at other URL shorteners are rejected.
@@ -165,21 +176,39 @@ UTM source/medium/campaign, device, browser, OS, country, city, and whether it w
 Link-preview bots (WhatsApp, Slack, X, Discord, ...) and scripts such as `curl` still get redirected,
 but they don't count as clicks; use a browser, or `curl -A` with a browser user agent, when testing.
 
-Apply migration `00006_click_batch_retries.sql` before starting the updated API.
-Failed batches stay in memory and retry with exponential backoff and jitter
-(initial delay 50–100 ms, capped at 5 seconds; each write attempt has a 10-second
-timeout). Each batch keeps the same random ID on every attempt. Its `click_batches`
-receipt, click rows, and human counters commit atomically, so an acknowledgement
-lost after commit cannot cause double counting. Click timestamps reflect the
-original request, including when retries cross midnight. Receipts are retained;
-do not delete them while a batch could still be retried.
+Apply migrations `00007_click_storage.sql` and `00008_click_events.sql` (with the old API stopped)
+before starting this version.
 
-This is a bounded in-memory queue, not durable delivery: a crash can lose pending
-clicks, and a full 10,000-click queue drops new analytics events without blocking
-redirects. A failed batch holds up later batches until it succeeds or shutdown
-expires, so persistent data/schema errors need intervention. Shutdown drains
-within the existing 15-second server shutdown budget; expiry cancels pending
-writes and reports an error.
+Every click gets an event ID when it is recorded. The click rows and their `link_counters`
+increments commit in one statement that skips event IDs already stored, so a batch retried after a
+lost acknowledgement, or written twice by two instances, never counts twice. Click timestamps
+reflect the original request, including when retries cross midnight.
+
+**Click queue (`CLICK_QUEUE`):**
+
+- `redis` (the default when `REDIS_URL` is set): within 20 ms, clicks are appended to the Redis
+  stream `sh:clicks` as entries of up to `CLICK_BATCH_SIZE` (1,000). `CLICK_WRITERS` (2) consumers
+  per instance write entries to PostgreSQL and delete them only after the commit. An instance that
+  crashes loses at most the clicks it hadn't appended yet; entries it was writing are taken over by
+  another instance after a minute. While Redis is down, or the stream holds more than
+  `CLICK_STREAM_MAX_MB` (64), new clicks take the memory path instead. Entries PostgreSQL rejects as
+  invalid move to `sh:clicks:dead`. Redis needs `appendonly yes` (`appendfsync everysec`) so the
+  stream survives a Redis restart.
+- `memory`: clicks wait in RAM (`CLICK_BUFFER_SIZE`, default 100,000) and `CLICK_WRITERS`
+  goroutines write batches of `CLICK_BATCH_SIZE`, or every second. A crash loses what's in RAM; a
+  full buffer drops new clicks without blocking redirects.
+
+Failed writes retry with exponential backoff and jitter (capped at 5 seconds; each attempt has a
+10-second timeout). Shutdown appends or writes what's buffered within the 15-second shutdown
+budget. With `CLICK_ASYNC_COMMIT=true` (default), click batches commit without waiting for the WAL
+flush: a PostgreSQL crash can lose up to about 0.6 s of committed clicks. Links and accounts always
+commit synchronously.
+
+Storage: `clicks` is partitioned by UTC day and keeps only the parsed fields (no raw user agent).
+The API's maintenance job (every `MAINTENANCE_INTERVAL`, default 15 minutes, one instance at a time)
+creates partitions ahead, rolls closed days up into `click_daily` / `click_daily_dims`, drops raw
+partitions older than `CLICK_RAW_RETENTION_DAYS` (30) once rolled up. Stats read rollups for past
+days and raw clicks for the rest. It runs at every start too.
 
 No raw IP or full referrer URL is stored. Visitors are counted with a keyed hash of IP + user agent
 that changes every UTC day, so visits can't be linked across days.
@@ -197,6 +226,21 @@ leave it empty so clients can't fake their IP with `X-Forwarded-For`.
 `WEB_RISK_API_KEY` (Google Cloud Web Risk) makes new links pointing at known malware or phishing
 fail with 400. If Web Risk is unreachable, links are still created.
 
+### Caching, Redis and operations
+
+- **Redirect cache:** each API process keeps up to `LINK_CACHE_SIZE` links for `LINK_CACHE_TTL`.
+  Concurrent misses for one slug share a single lookup, and database lookups from misses are capped
+  at half the pool. If PostgreSQL fails, an entry is served up to `LINK_CACHE_STALE` (5m) after it
+  expired; uncached slugs then get 503.
+- **Redis (`REDIS_URL`, optional):** a shared cache behind the in-process one (5-minute TTL),
+  deletions and takedowns written as 10-minute revocations and broadcast so every instance forgets
+  the slug, and an exact 20-per-hour anonymous quota. Every key has a TTL, so run Redis with
+  `maxmemory-policy volatile-lru`. If Redis is down, the API keeps working and falls back.
+- **Reports** run at most a quarter of the pool at a time, so they can't starve redirects.
+- **Metrics (`METRICS_ADDR`, e.g. `:9090`):** `/metrics` (Prometheus) and `/debug/pprof` on a separate
+  listener. Keep that port off the public proxy.
+- **Access log (`REQUEST_LOG`):** `all` (default), `errors` (status 400 and up), or `off`.
+
 ## Testing
 
 ```sh
@@ -205,7 +249,10 @@ go test -race ./...                 # unit tests (no database needed)
 # Optional PostgreSQL integration tests. Creates and removes an isolated schema;
 # the test user needs permission to create schemas. Use a local test database.
 TEST_DATABASE_URL='postgres://postgres:postgres@localhost:5434/myapp?sslmode=disable' \
-  go test -race -count=1 ./internal/analytics ./internal/database
+  go test -race -count=1 ./internal/analytics ./internal/database ./internal/maintenance
+
+# The click stream against PostgreSQL and Redis. Uses its own stream key and schema.
+TEST_DATABASE_URL='...' TEST_REDIS_URL='redis://localhost:6380/0' go test -race -count=1 ./internal/clickstream
 
 goose up                            # apply new migrations to the local database
 docker compose up --build -d        # run the stack

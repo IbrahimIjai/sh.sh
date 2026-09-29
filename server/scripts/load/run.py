@@ -69,7 +69,7 @@ def main():
     try:
         print('Building isolated API and starting benchmark database...', flush=True)
         run(compose + ['build', 'api'], stdout=(out / 'build.log').open('w'), stderr=subprocess.STDOUT)
-        run(compose + ['up', '-d', '--wait', 'db'])
+        run(compose + ['up', '-d', '--wait', 'db', 'redis'])
         for migration in sorted((SERVER / 'db/migrations').glob('*.sql')):
             sql(migration.read_text().split('-- +goose Down')[0])
         sql("INSERT INTO users (id,email,email_verified_at,updated_at) VALUES (1,'loadtest@example.com',now(),now());"
@@ -92,7 +92,7 @@ def main():
 
         for index, rate in enumerate(rates):
             label = f'run-{index + 1}-{rate}rps'
-            before = int(sql('SELECT coalesce(sum(click_count),0) FROM links;'))
+            before = int(sql('SELECT coalesce(sum(human_clicks),0) FROM link_counters;'))
             print(f'Starting {label}: {args.duration}s; {args.stats_rate} stats reads/s', flush=True)
             cmd = docker + ['run', '--rm', '--name', project + '-k6', '--network', project + '_default',
                 '--user', str(os.getuid()) + ':' + str(os.getgid()),
@@ -127,7 +127,7 @@ def main():
                 if actual[0] >= expected or stable >= 5:
                     break
                 time.sleep(1)
-            after = int(sql('SELECT coalesce(sum(click_count),0) FROM links;'))
+            after = int(sql('SELECT coalesce(sum(human_clicks),0) FROM link_counters;'))
             stats_reconciliation = []
             for link_id in sorted({1, min(2, args.links), args.links}):
                 response = run(compose + ['exec', '-T', 'api', 'wget', '-qO-',

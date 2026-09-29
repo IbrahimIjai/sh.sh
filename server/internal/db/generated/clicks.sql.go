@@ -12,36 +12,22 @@ import (
 	"github.com/lib/pq"
 )
 
-const countClicksByLink = `-- name: CountClicksByLink :one
-SELECT COUNT(*)
-FROM clicks
-WHERE link_id = $1
+const deleteRollupDaily = `-- name: DeleteRollupDaily :exec
+DELETE FROM click_daily WHERE day = $1::date
 `
 
-func (q *Queries) CountClicksByLink(ctx context.Context, linkID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countClicksByLink, linkID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+func (q *Queries) DeleteRollupDaily(ctx context.Context, day time.Time) error {
+	_, err := q.db.ExecContext(ctx, deleteRollupDaily, day)
+	return err
 }
 
-const countClicksByLinkSince = `-- name: CountClicksByLinkSince :one
-SELECT COUNT(*)
-FROM clicks
-WHERE link_id = $1
-	AND created_at >= $2
+const deleteRollupDimensions = `-- name: DeleteRollupDimensions :exec
+DELETE FROM click_daily_dims WHERE day = $1::date
 `
 
-type CountClicksByLinkSinceParams struct {
-	LinkID    int64     `json:"link_id"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-func (q *Queries) CountClicksByLinkSince(ctx context.Context, arg CountClicksByLinkSinceParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countClicksByLinkSince, arg.LinkID, arg.CreatedAt)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+func (q *Queries) DeleteRollupDimensions(ctx context.Context, day time.Time) error {
+	_, err := q.db.ExecContext(ctx, deleteRollupDimensions, day)
+	return err
 }
 
 const getClickTotalsByLink = `-- name: GetClickTotalsByLink :one
@@ -73,67 +59,129 @@ func (q *Queries) GetClickTotalsByLink(ctx context.Context, arg GetClickTotalsBy
 	return i, err
 }
 
-const listClickBreakdownByLink = `-- name: ListClickBreakdownByLink :many
-SELECT ranked.dimension, ranked.name, ranked.clicks
-FROM (
-	SELECT
-		grouped.dimension,
-		grouped.name,
-		grouped.clicks,
-		ROW_NUMBER() OVER (PARTITION BY grouped.dimension ORDER BY grouped.clicks DESC, grouped.name) AS position
-	FROM (
-		SELECT
-			(CASE
-				WHEN GROUPING(source) = 0 THEN 'sources'
-				WHEN GROUPING(referer_host) = 0 THEN 'referrers'
-				WHEN GROUPING(country) = 0 THEN 'countries'
-				WHEN GROUPING(city) = 0 THEN 'cities'
-				WHEN GROUPING(device_type) = 0 THEN 'devices'
-				WHEN GROUPING(browser) = 0 THEN 'browsers'
-				WHEN GROUPING(os) = 0 THEN 'operating_systems'
-				WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
-				ELSE 'utm_campaigns'
-			END)::text AS dimension,
-			COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
-			COUNT(*) AS clicks
-		FROM clicks
-		WHERE link_id = $1
-			AND created_at >= $2
-			AND NOT is_bot
-		GROUP BY GROUPING SETS (
-			(source), (referer_host), (country), (city), (device_type),
-			(browser), (os), (utm_source), (utm_campaign)
-		)
-	) AS grouped
-) AS ranked
-WHERE ranked.position <= $3::bigint
-ORDER BY ranked.dimension, ranked.clicks DESC, ranked.name
+const getRollupDay = `-- name: GetRollupDay :one
+SELECT computed_at
+FROM click_rollup_days
+WHERE day = $1::date
 `
 
-type ListClickBreakdownByLinkParams struct {
-	LinkID       int64     `json:"link_id"`
-	Since        time.Time `json:"since"`
-	PerDimension int64     `json:"per_dimension"`
+func (q *Queries) GetRollupDay(ctx context.Context, day time.Time) (time.Time, error) {
+	row := q.db.QueryRowContext(ctx, getRollupDay, day)
+	var computed_at time.Time
+	err := row.Scan(&computed_at)
+	return computed_at, err
 }
 
-type ListClickBreakdownByLinkRow struct {
-	Dimension string `json:"dimension"`
-	Name      string `json:"name"`
-	Clicks    int64  `json:"clicks"`
+const getRollupTotalsByLink = `-- name: GetRollupTotalsByLink :one
+SELECT
+	COALESCE(SUM(human), 0)::bigint AS clicks,
+	COALESCE(SUM(visitors), 0)::bigint AS unique_visitors,
+	COALESCE(SUM(bots), 0)::bigint AS bot_clicks
+FROM click_daily
+WHERE link_id = $1
+	AND day >= $2::date
+	AND day < $3::date
+`
+
+type GetRollupTotalsByLinkParams struct {
+	LinkID int64     `json:"link_id"`
+	Since  time.Time `json:"since"`
+	Until  time.Time `json:"until"`
 }
 
-// Top values per dimension for non-bot clicks. Each grouping set groups by one column and leaves
-// the others NULL, so COALESCE picks out that set's value (an empty string when the value itself is NULL).
-func (q *Queries) ListClickBreakdownByLink(ctx context.Context, arg ListClickBreakdownByLinkParams) ([]ListClickBreakdownByLinkRow, error) {
-	rows, err := q.db.QueryContext(ctx, listClickBreakdownByLink, arg.LinkID, arg.Since, arg.PerDimension)
+type GetRollupTotalsByLinkRow struct {
+	Clicks         int64 `json:"clicks"`
+	UniqueVisitors int64 `json:"unique_visitors"`
+	BotClicks      int64 `json:"bot_clicks"`
+}
+
+func (q *Queries) GetRollupTotalsByLink(ctx context.Context, arg GetRollupTotalsByLinkParams) (GetRollupTotalsByLinkRow, error) {
+	row := q.db.QueryRowContext(ctx, getRollupTotalsByLink, arg.LinkID, arg.Since, arg.Until)
+	var i GetRollupTotalsByLinkRow
+	err := row.Scan(&i.Clicks, &i.UniqueVisitors, &i.BotClicks)
+	return i, err
+}
+
+const insertRollupDaily = `-- name: InsertRollupDaily :exec
+INSERT INTO click_daily (link_id, day, human, bots, visitors)
+SELECT
+	link_id,
+	$1::date,
+	COUNT(*) FILTER (WHERE NOT is_bot),
+	COUNT(*) FILTER (WHERE is_bot),
+	COUNT(DISTINCT visitor_hash) FILTER (WHERE NOT is_bot)
+FROM clicks
+WHERE created_at >= $2
+	AND created_at < $3
+GROUP BY link_id
+`
+
+type InsertRollupDailyParams struct {
+	Day      time.Time `json:"day"`
+	DayStart time.Time `json:"day_start"`
+	DayEnd   time.Time `json:"day_end"`
+}
+
+func (q *Queries) InsertRollupDaily(ctx context.Context, arg InsertRollupDailyParams) error {
+	_, err := q.db.ExecContext(ctx, insertRollupDaily, arg.Day, arg.DayStart, arg.DayEnd)
+	return err
+}
+
+const insertRollupDimensions = `-- name: InsertRollupDimensions :exec
+INSERT INTO click_daily_dims (link_id, day, dimension, value, clicks)
+SELECT
+	link_id,
+	$1::date,
+	(CASE
+		WHEN GROUPING(source) = 0 THEN 'sources'
+		WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+		WHEN GROUPING(country) = 0 THEN 'countries'
+		WHEN GROUPING(city) = 0 THEN 'cities'
+		WHEN GROUPING(device_type) = 0 THEN 'devices'
+		WHEN GROUPING(browser) = 0 THEN 'browsers'
+		WHEN GROUPING(os) = 0 THEN 'operating_systems'
+		WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+		ELSE 'utm_campaigns'
+	END)::text,
+	COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text,
+	COUNT(*)
+FROM clicks
+WHERE created_at >= $2
+	AND created_at < $3
+	AND NOT is_bot
+GROUP BY link_id, GROUPING SETS (
+	(source), (referer_host), (country), (city), (device_type),
+	(browser), (os), (utm_source), (utm_campaign)
+)
+`
+
+type InsertRollupDimensionsParams struct {
+	Day      time.Time `json:"day"`
+	DayStart time.Time `json:"day_start"`
+	DayEnd   time.Time `json:"day_end"`
+}
+
+func (q *Queries) InsertRollupDimensions(ctx context.Context, arg InsertRollupDimensionsParams) error {
+	_, err := q.db.ExecContext(ctx, insertRollupDimensions, arg.Day, arg.DayStart, arg.DayEnd)
+	return err
+}
+
+const listClickCounts = `-- name: ListClickCounts :many
+SELECT link_id, human_clicks
+FROM link_counters
+WHERE link_id = ANY($1::bigint[])
+`
+
+func (q *Queries) ListClickCounts(ctx context.Context, linkIds []int64) ([]LinkCounter, error) {
+	rows, err := q.db.QueryContext(ctx, listClickCounts, pq.Array(linkIds))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListClickBreakdownByLinkRow
+	var items []LinkCounter
 	for rows.Next() {
-		var i ListClickBreakdownByLinkRow
-		if err := rows.Scan(&i.Dimension, &i.Name, &i.Clicks); err != nil {
+		var i LinkCounter
+		if err := rows.Scan(&i.LinkID, &i.HumanClicks); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -147,47 +195,54 @@ func (q *Queries) ListClickBreakdownByLink(ctx context.Context, arg ListClickBre
 	return items, nil
 }
 
-const listClicksByLink = `-- name: ListClicksByLink :many
-SELECT id, link_id, user_agent, country, created_at, visitor_hash, referer_host, source, utm_source, utm_medium, utm_campaign, device_type, browser, os, city, is_bot
+const listClickDimensionsByLink = `-- name: ListClickDimensionsByLink :many
+SELECT
+	(CASE
+		WHEN GROUPING(source) = 0 THEN 'sources'
+		WHEN GROUPING(referer_host) = 0 THEN 'referrers'
+		WHEN GROUPING(country) = 0 THEN 'countries'
+		WHEN GROUPING(city) = 0 THEN 'cities'
+		WHEN GROUPING(device_type) = 0 THEN 'devices'
+		WHEN GROUPING(browser) = 0 THEN 'browsers'
+		WHEN GROUPING(os) = 0 THEN 'operating_systems'
+		WHEN GROUPING(utm_source) = 0 THEN 'utm_sources'
+		ELSE 'utm_campaigns'
+	END)::text AS dimension,
+	COALESCE(source, referer_host, country, city, device_type, browser, os, utm_source, utm_campaign, '')::text AS name,
+	COUNT(*) AS clicks
 FROM clicks
 WHERE link_id = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+	AND created_at >= $2
+	AND NOT is_bot
+GROUP BY GROUPING SETS (
+	(source), (referer_host), (country), (city), (device_type),
+	(browser), (os), (utm_source), (utm_campaign)
+)
 `
 
-type ListClicksByLinkParams struct {
-	LinkID int64 `json:"link_id"`
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+type ListClickDimensionsByLinkParams struct {
+	LinkID int64     `json:"link_id"`
+	Since  time.Time `json:"since"`
 }
 
-func (q *Queries) ListClicksByLink(ctx context.Context, arg ListClicksByLinkParams) ([]Click, error) {
-	rows, err := q.db.QueryContext(ctx, listClicksByLink, arg.LinkID, arg.Limit, arg.Offset)
+type ListClickDimensionsByLinkRow struct {
+	Dimension string `json:"dimension"`
+	Name      string `json:"name"`
+	Clicks    int64  `json:"clicks"`
+}
+
+// Every value per dimension for non-bot clicks. Each grouping set groups by one column and leaves
+// the others NULL, so COALESCE picks out that set's value (an empty string when the value itself is NULL).
+func (q *Queries) ListClickDimensionsByLink(ctx context.Context, arg ListClickDimensionsByLinkParams) ([]ListClickDimensionsByLinkRow, error) {
+	rows, err := q.db.QueryContext(ctx, listClickDimensionsByLink, arg.LinkID, arg.Since)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Click
+	var items []ListClickDimensionsByLinkRow
 	for rows.Next() {
-		var i Click
-		if err := rows.Scan(
-			&i.ID,
-			&i.LinkID,
-			&i.UserAgent,
-			&i.Country,
-			&i.CreatedAt,
-			&i.VisitorHash,
-			&i.RefererHost,
-			&i.Source,
-			&i.UtmSource,
-			&i.UtmMedium,
-			&i.UtmCampaign,
-			&i.DeviceType,
-			&i.Browser,
-			&i.Os,
-			&i.City,
-			&i.IsBot,
-		); err != nil {
+		var i ListClickDimensionsByLinkRow
+		if err := rows.Scan(&i.Dimension, &i.Name, &i.Clicks); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -203,7 +258,7 @@ func (q *Queries) ListClicksByLink(ctx context.Context, arg ListClicksByLinkPara
 
 const listDailyClicksByLink = `-- name: ListDailyClicksByLink :many
 SELECT
-	date_trunc('day', created_at)::date AS day,
+	(created_at AT TIME ZONE 'UTC')::date AS day,
 	COUNT(*) AS clicks,
 	COUNT(DISTINCT visitor_hash) AS unique_visitors
 FROM clicks
@@ -248,36 +303,166 @@ func (q *Queries) ListDailyClicksByLink(ctx context.Context, arg ListDailyClicks
 	return items, nil
 }
 
-const recordClicks = `-- name: RecordClicks :exec
-WITH accepted_batch AS (
-	INSERT INTO click_batches (id) VALUES ($1::text)
-	ON CONFLICT (id) DO NOTHING
-	RETURNING id
-),
-batch AS (
+const listRolledDays = `-- name: ListRolledDays :many
+SELECT day
+FROM click_rollup_days
+WHERE day >= $1::date
+	AND day < $2::date
+ORDER BY day
+`
+
+type ListRolledDaysParams struct {
+	Since time.Time `json:"since"`
+	Until time.Time `json:"until"`
+}
+
+func (q *Queries) ListRolledDays(ctx context.Context, arg ListRolledDaysParams) ([]time.Time, error) {
+	rows, err := q.db.QueryContext(ctx, listRolledDays, arg.Since, arg.Until)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []time.Time
+	for rows.Next() {
+		var day time.Time
+		if err := rows.Scan(&day); err != nil {
+			return nil, err
+		}
+		items = append(items, day)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRollupDailyByLink = `-- name: ListRollupDailyByLink :many
+SELECT day, human AS clicks, visitors AS unique_visitors
+FROM click_daily
+WHERE link_id = $1
+	AND day >= $2::date
+	AND day < $3::date
+ORDER BY day
+`
+
+type ListRollupDailyByLinkParams struct {
+	LinkID int64     `json:"link_id"`
+	Since  time.Time `json:"since"`
+	Until  time.Time `json:"until"`
+}
+
+type ListRollupDailyByLinkRow struct {
+	Day            time.Time `json:"day"`
+	Clicks         int64     `json:"clicks"`
+	UniqueVisitors int64     `json:"unique_visitors"`
+}
+
+func (q *Queries) ListRollupDailyByLink(ctx context.Context, arg ListRollupDailyByLinkParams) ([]ListRollupDailyByLinkRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRollupDailyByLink, arg.LinkID, arg.Since, arg.Until)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRollupDailyByLinkRow
+	for rows.Next() {
+		var i ListRollupDailyByLinkRow
+		if err := rows.Scan(&i.Day, &i.Clicks, &i.UniqueVisitors); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRollupDimensionsByLink = `-- name: ListRollupDimensionsByLink :many
+SELECT dimension, value AS name, SUM(clicks)::bigint AS clicks
+FROM click_daily_dims
+WHERE link_id = $1
+	AND day >= $2::date
+	AND day < $3::date
+GROUP BY dimension, value
+`
+
+type ListRollupDimensionsByLinkParams struct {
+	LinkID int64     `json:"link_id"`
+	Since  time.Time `json:"since"`
+	Until  time.Time `json:"until"`
+}
+
+type ListRollupDimensionsByLinkRow struct {
+	Dimension string `json:"dimension"`
+	Name      string `json:"name"`
+	Clicks    int64  `json:"clicks"`
+}
+
+func (q *Queries) ListRollupDimensionsByLink(ctx context.Context, arg ListRollupDimensionsByLinkParams) ([]ListRollupDimensionsByLinkRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRollupDimensionsByLink, arg.LinkID, arg.Since, arg.Until)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRollupDimensionsByLinkRow
+	for rows.Next() {
+		var i ListRollupDimensionsByLinkRow
+		if err := rows.Scan(&i.Dimension, &i.Name, &i.Clicks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markRollupDay = `-- name: MarkRollupDay :exec
+INSERT INTO click_rollup_days (day, computed_at)
+VALUES ($1::date, CURRENT_TIMESTAMP)
+ON CONFLICT (day) DO UPDATE SET computed_at = EXCLUDED.computed_at
+`
+
+func (q *Queries) MarkRollupDay(ctx context.Context, day time.Time) error {
+	_, err := q.db.ExecContext(ctx, markRollupDay, day)
+	return err
+}
+
+const recordClicks = `-- name: RecordClicks :one
+WITH batch AS (
 	SELECT
+		unnest($1::text[])::uuid AS event_id,
 		unnest($2::timestamptz[]) AS created_at,
 		unnest($3::bigint[]) AS link_id,
 		unnest($4::text[]) AS visitor_hash,
-		unnest($5::text[]) AS user_agent,
-		unnest($6::text[]) AS referer_host,
-		unnest($7::text[]) AS source,
-		unnest($8::text[]) AS utm_source,
-		unnest($9::text[]) AS utm_medium,
-		unnest($10::text[]) AS utm_campaign,
-		unnest($11::text[]) AS device_type,
-		unnest($12::text[]) AS browser,
-		unnest($13::text[]) AS os,
-		unnest($14::text[]) AS country,
-		unnest($15::text[]) AS city,
-		unnest($16::boolean[]) AS is_bot
+		unnest($5::text[]) AS referer_host,
+		unnest($6::text[]) AS source,
+		unnest($7::text[]) AS utm_source,
+		unnest($8::text[]) AS utm_medium,
+		unnest($9::text[]) AS utm_campaign,
+		unnest($10::text[]) AS device_type,
+		unnest($11::text[]) AS browser,
+		unnest($12::text[]) AS os,
+		unnest($13::text[]) AS country,
+		unnest($14::text[]) AS city,
+		unnest($15::boolean[]) AS is_bot
 ),
 inserted AS (
 	INSERT INTO clicks (
+		event_id,
 		created_at,
 		link_id,
 		visitor_hash,
-		user_agent,
 		referer_host,
 		source,
 		utm_source,
@@ -291,10 +476,10 @@ inserted AS (
 		is_bot
 	)
 	SELECT
+		batch.event_id,
 		batch.created_at,
 		batch.link_id,
 		NULLIF(batch.visitor_hash, ''),
-		NULLIF(batch.user_agent, ''),
 		NULLIF(batch.referer_host, ''),
 		NULLIF(batch.source, ''),
 		NULLIF(batch.utm_source, ''),
@@ -307,26 +492,27 @@ inserted AS (
 		NULLIF(batch.city, ''),
 		batch.is_bot
 	FROM batch
-	WHERE EXISTS (SELECT 1 FROM accepted_batch)
+	ON CONFLICT (created_at, event_id) DO NOTHING
 	RETURNING clicks.link_id, clicks.is_bot
-)
-UPDATE links
-SET click_count = links.click_count + counts.clicks
-FROM (
-	SELECT inserted.link_id, COUNT(*) AS clicks
+),
+counted AS (
+	INSERT INTO link_counters (link_id, human_clicks)
+	SELECT inserted.link_id, COUNT(*)
 	FROM inserted
 	WHERE NOT inserted.is_bot
 	GROUP BY inserted.link_id
-) AS counts
-WHERE links.id = counts.link_id
+	ORDER BY inserted.link_id
+	ON CONFLICT (link_id) DO UPDATE
+	SET human_clicks = link_counters.human_clicks + EXCLUDED.human_clicks
+)
+SELECT COUNT(*) FROM inserted
 `
 
 type RecordClicksParams struct {
-	BatchID       string      `json:"batch_id"`
+	EventIds      []string    `json:"event_ids"`
 	CreatedAts    []time.Time `json:"created_ats"`
 	LinkIds       []int64     `json:"link_ids"`
 	VisitorHashes []string    `json:"visitor_hashes"`
-	UserAgents    []string    `json:"user_agents"`
 	RefererHosts  []string    `json:"referer_hosts"`
 	Sources       []string    `json:"sources"`
 	UtmSources    []string    `json:"utm_sources"`
@@ -340,16 +526,16 @@ type RecordClicksParams struct {
 	IsBots        []bool      `json:"is_bots"`
 }
 
-// Inserts a batch of clicks and adds the non-bot ones to links.click_count in one statement.
-// Empty strings in the arrays are stored as NULL.
-// Reuse batch_id on every retry, including after an ambiguous commit outcome.
-func (q *Queries) RecordClicks(ctx context.Context, arg RecordClicksParams) error {
-	_, err := q.db.ExecContext(ctx, recordClicks,
-		arg.BatchID,
+// Inserts a batch of clicks and adds the new non-bot ones to link_counters in one statement.
+// A click whose (created_at, event_id) is already stored is skipped, so a replay never counts
+// twice. Empty strings in the arrays are stored as NULL. Returns how many clicks were new.
+// Counters are upserted in link_id order so concurrent batches lock rows in the same order.
+func (q *Queries) RecordClicks(ctx context.Context, arg RecordClicksParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, recordClicks,
+		pq.Array(arg.EventIds),
 		pq.Array(arg.CreatedAts),
 		pq.Array(arg.LinkIds),
 		pq.Array(arg.VisitorHashes),
-		pq.Array(arg.UserAgents),
 		pq.Array(arg.RefererHosts),
 		pq.Array(arg.Sources),
 		pq.Array(arg.UtmSources),
@@ -362,5 +548,7 @@ func (q *Queries) RecordClicks(ctx context.Context, arg RecordClicksParams) erro
 		pq.Array(arg.Cities),
 		pq.Array(arg.IsBots),
 	)
-	return err
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }

@@ -7,35 +7,48 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 type Querier interface {
 	ClaimLinks(ctx context.Context, arg ClaimLinksParams) ([]Link, error)
-	CountClicksByLink(ctx context.Context, linkID int64) (int64, error)
-	CountClicksByLinkSince(ctx context.Context, arg CountClicksByLinkSinceParams) (int64, error)
 	CountLinksByCreatorSince(ctx context.Context, arg CountLinksByCreatorSinceParams) (int64, error)
 	CountLinksByUser(ctx context.Context, userID sql.NullInt64) (int64, error)
 	CreateDomain(ctx context.Context, arg CreateDomainParams) (Domain, error)
 	// Returns no row when the slug is taken. idx_links_slug covers soft-deleted rows too, so a slug is never reused.
 	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
+	DeactivateLinksBySlugs(ctx context.Context, slugs []string) ([]string, error)
+	// Matches the host and its subdomains, ignoring any user info or port in the target URL.
+	DeactivateLinksByTargetHost(ctx context.Context, host string) ([]string, error)
+	DeleteRollupDaily(ctx context.Context, day time.Time) error
+	DeleteRollupDimensions(ctx context.Context, day time.Time) error
 	// visitor_hash rotates daily, so distinct hashes over a range add up the daily unique visitors.
 	GetClickTotalsByLink(ctx context.Context, arg GetClickTotalsByLinkParams) (GetClickTotalsByLinkRow, error)
 	GetDomainByHost(ctx context.Context, host string) (Domain, error)
 	GetLinkByID(ctx context.Context, id int64) (Link, error)
 	GetLinkBySlug(ctx context.Context, slug string) (Link, error)
-	// Top values per dimension for non-bot clicks. Each grouping set groups by one column and leaves
+	GetRollupDay(ctx context.Context, day time.Time) (time.Time, error)
+	GetRollupTotalsByLink(ctx context.Context, arg GetRollupTotalsByLinkParams) (GetRollupTotalsByLinkRow, error)
+	InsertRollupDaily(ctx context.Context, arg InsertRollupDailyParams) error
+	InsertRollupDimensions(ctx context.Context, arg InsertRollupDimensionsParams) error
+	ListClickCounts(ctx context.Context, linkIds []int64) ([]LinkCounter, error)
+	// Every value per dimension for non-bot clicks. Each grouping set groups by one column and leaves
 	// the others NULL, so COALESCE picks out that set's value (an empty string when the value itself is NULL).
-	ListClickBreakdownByLink(ctx context.Context, arg ListClickBreakdownByLinkParams) ([]ListClickBreakdownByLinkRow, error)
-	ListClicksByLink(ctx context.Context, arg ListClicksByLinkParams) ([]Click, error)
+	ListClickDimensionsByLink(ctx context.Context, arg ListClickDimensionsByLinkParams) ([]ListClickDimensionsByLinkRow, error)
 	ListDailyClicksByLink(ctx context.Context, arg ListDailyClicksByLinkParams) ([]ListDailyClicksByLinkRow, error)
 	ListDomainsByUser(ctx context.Context, userID int64) ([]Domain, error)
 	ListLinksByClaimTokens(ctx context.Context, claimTokenHashes []string) ([]Link, error)
 	ListLinksByUser(ctx context.Context, arg ListLinksByUserParams) ([]Link, error)
+	ListRolledDays(ctx context.Context, arg ListRolledDaysParams) ([]time.Time, error)
+	ListRollupDailyByLink(ctx context.Context, arg ListRollupDailyByLinkParams) ([]ListRollupDailyByLinkRow, error)
+	ListRollupDimensionsByLink(ctx context.Context, arg ListRollupDimensionsByLinkParams) ([]ListRollupDimensionsByLinkRow, error)
 	MarkDomainVerified(ctx context.Context, arg MarkDomainVerifiedParams) (Domain, error)
-	// Inserts a batch of clicks and adds the non-bot ones to links.click_count in one statement.
-	// Empty strings in the arrays are stored as NULL.
-	// Reuse batch_id on every retry, including after an ambiguous commit outcome.
-	RecordClicks(ctx context.Context, arg RecordClicksParams) error
+	MarkRollupDay(ctx context.Context, day time.Time) error
+	// Inserts a batch of clicks and adds the new non-bot ones to link_counters in one statement.
+	// A click whose (created_at, event_id) is already stored is skipped, so a replay never counts
+	// twice. Empty strings in the arrays are stored as NULL. Returns how many clicks were new.
+	// Counters are upserted in link_id order so concurrent batches lock rows in the same order.
+	RecordClicks(ctx context.Context, arg RecordClicksParams) (int64, error)
 	SoftDeleteDomain(ctx context.Context, arg SoftDeleteDomainParams) error
 	SoftDeleteLink(ctx context.Context, id int64) error
 	UpdateLink(ctx context.Context, arg UpdateLinkParams) (Link, error)

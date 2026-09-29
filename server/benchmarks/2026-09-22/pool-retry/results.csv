@@ -1,9 +1,0 @@
-phase,target_rps,duration_s,redirect_rps,redirects,http_error_rate,dropped_iterations,stored_clicks,analytics_match,thresholds_passed
-ramp,150,30,149.95677567571246,4501,0,0,4501,True,True
-ramp,250,30,249.89603432843094,7500,0,0,7500,True,True
-ramp,500,30,499.9655802810698,15001,0,0,15001,True,True
-ramp,1000,30,999.7135074206755,30001,0,0,30001,True,True
-high,2000,30,1998.6913945868946,59970,0,31,59970,True,False
-high,3200,30,3198.7319384138877,96001,0,0,96001,True,True
-sustained,3200,120,3184.4376911935565,382145,0,1852,382145,True,False
-confirmed,1000,120,999.9617665868498,120000,0,0,120000,True,True

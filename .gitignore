@@ -12,6 +12,10 @@ server/tmp/
 *.test
 coverage.out
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # OS and editor files
 .DS_Store
 .idea/

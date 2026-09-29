@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -17,14 +18,14 @@ type fakeClickStore struct {
 	block   chan struct{}
 }
 
-func (f *fakeClickStore) RecordClicks(_ context.Context, arg db.RecordClicksParams) error {
+func (f *fakeClickStore) RecordClicks(_ context.Context, arg db.RecordClicksParams) (int64, error) {
 	if f.block != nil {
 		<-f.block
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.batches = append(f.batches, arg)
-	return nil
+	return int64(len(arg.LinkIds)), nil
 }
 
 func (f *fakeClickStore) linkIDs() []int64 {
@@ -41,9 +42,10 @@ func TestRecorderBatchesAndDrainsOnClose(t *testing.T) {
 	store := &fakeClickStore{}
 	recorder := NewRecorder(store, RecorderConfig{BatchSize: 2, FlushEvery: time.Hour})
 
-	recorder.Record(Click{LinkID: 1, Source: "Direct"})
-	recorder.Record(Click{LinkID: 2, IsBot: true})
-	recorder.Record(Click{LinkID: 3})
+	at := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	recorder.Record(Click{LinkID: 1, Source: "Direct", CreatedAt: at})
+	recorder.Record(Click{LinkID: 2, IsBot: true, CreatedAt: at.Add(time.Second)})
+	recorder.Record(Click{LinkID: 3, CreatedAt: at.Add(2 * time.Second)})
 
 	if err := recorder.Close(context.Background()); err != nil {
 		t.Fatalf("Close: %v", err)
@@ -60,7 +62,7 @@ func TestRecorderBatchesAndDrainsOnClose(t *testing.T) {
 	for name, n := range map[string]int{
 		"visitor_hashes": len(first.VisitorHashes), "sources": len(first.Sources), "is_bots": len(first.IsBots),
 		"countries": len(first.Countries), "cities": len(first.Cities), "oses": len(first.Oses),
-		"created_ats": len(first.CreatedAts),
+		"created_ats": len(first.CreatedAts), "event_ids": len(first.EventIds),
 	} {
 		if n != len(first.LinkIds) {
 			t.Errorf("%s has %d values, want %d", name, n, len(first.LinkIds))
@@ -71,20 +73,20 @@ func TestRecorderBatchesAndDrainsOnClose(t *testing.T) {
 	}
 }
 
-type clickStoreFunc func(context.Context, db.RecordClicksParams) error
+type clickStoreFunc func(context.Context, db.RecordClicksParams) (int64, error)
 
-func (f clickStoreFunc) RecordClicks(ctx context.Context, arg db.RecordClicksParams) error {
+func (f clickStoreFunc) RecordClicks(ctx context.Context, arg db.RecordClicksParams) (int64, error) {
 	return f(ctx, arg)
 }
 
 func TestRecorderRetriesSameBatchBeforeNextBatch(t *testing.T) {
 	var attempts []db.RecordClicksParams
-	store := clickStoreFunc(func(_ context.Context, arg db.RecordClicksParams) error {
+	store := clickStoreFunc(func(_ context.Context, arg db.RecordClicksParams) (int64, error) {
 		attempts = append(attempts, arg)
 		if len(attempts) <= 2 {
-			return errors.New("database temporarily unavailable")
+			return 0, errors.New("database temporarily unavailable")
 		}
-		return nil
+		return int64(len(arg.LinkIds)), nil
 	})
 	recorder := NewRecorder(store, RecorderConfig{BatchSize: 2, FlushEvery: time.Hour, RetryMin: time.Millisecond, RetryMax: 2 * time.Millisecond})
 	at := time.Date(2026, 9, 21, 23, 59, 59, 0, time.UTC)
@@ -99,14 +101,17 @@ func TestRecorderRetriesSameBatchBeforeNextBatch(t *testing.T) {
 	if len(attempts) != 4 {
 		t.Fatalf("attempts = %d, want 4", len(attempts))
 	}
-	if attempts[0].BatchID == "" || !reflect.DeepEqual(attempts[0], attempts[1]) || !reflect.DeepEqual(attempts[0], attempts[2]) {
-		t.Fatal("retry changed the batch ID, data, or timestamp")
+	if len(attempts[0].EventIds) != 2 || attempts[0].EventIds[0] == "" || attempts[0].EventIds[0] == attempts[0].EventIds[1] {
+		t.Fatalf("event IDs = %q, want two distinct IDs", attempts[0].EventIds)
+	}
+	if !reflect.DeepEqual(attempts[0], attempts[1]) || !reflect.DeepEqual(attempts[0], attempts[2]) {
+		t.Fatal("retry changed the event IDs, data, or timestamp")
 	}
 	if !attempts[0].CreatedAts[0].Equal(at) || attempts[3].CreatedAts[0].IsZero() {
 		t.Fatal("original click time was not retained")
 	}
-	if attempts[3].BatchID == attempts[0].BatchID || !reflect.DeepEqual(attempts[3].LinkIds, []int64{3}) {
-		t.Fatal("next batch must have its own ID and run after recovery")
+	if !reflect.DeepEqual(attempts[3].LinkIds, []int64{3}) || slices.Contains(attempts[0].EventIds, attempts[3].EventIds[0]) {
+		t.Fatal("next batch must have its own event IDs and run after recovery")
 	}
 }
 
@@ -114,13 +119,13 @@ func TestRecorderCloseCancelsWriteAndBackoff(t *testing.T) {
 	for _, waitingOnDatabase := range []bool{false, true} {
 		t.Run(map[bool]string{false: "backoff", true: "database"}[waitingOnDatabase], func(t *testing.T) {
 			started := make(chan struct{})
-			store := clickStoreFunc(func(ctx context.Context, _ db.RecordClicksParams) error {
+			store := clickStoreFunc(func(ctx context.Context, _ db.RecordClicksParams) (int64, error) {
 				close(started)
 				if waitingOnDatabase {
 					<-ctx.Done()
-					return ctx.Err()
+					return 0, ctx.Err()
 				}
-				return errors.New("offline")
+				return 0, errors.New("offline")
 			})
 			recorder := NewRecorder(store, RecorderConfig{BatchSize: 1, WriteTimeout: time.Hour, RetryMin: time.Hour})
 			recorder.Record(Click{LinkID: 1})
@@ -148,13 +153,13 @@ func TestRecorderCloseCancelsWriteAndBackoff(t *testing.T) {
 
 func TestRecorderRetriesTimedOutAttempt(t *testing.T) {
 	attempts := 0
-	store := clickStoreFunc(func(ctx context.Context, _ db.RecordClicksParams) error {
+	store := clickStoreFunc(func(ctx context.Context, _ db.RecordClicksParams) (int64, error) {
 		attempts++
 		if attempts == 1 {
 			<-ctx.Done()
-			return ctx.Err()
+			return 0, ctx.Err()
 		}
-		return nil
+		return 1, nil
 	})
 	recorder := NewRecorder(store, RecorderConfig{WriteTimeout: 10 * time.Millisecond, RetryMin: time.Millisecond})
 	recorder.Record(Click{LinkID: 1})

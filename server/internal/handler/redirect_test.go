@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 )
 
 func TestRedirectRecordsClickAndForwardsUTM(t *testing.T) {
@@ -53,8 +55,8 @@ func TestRedirectCache(t *testing.T) {
 			t.Fatalf("after create: status = %d, want 302", w.Code)
 		}
 	}
-	if got := s.queries.slugLookups - lookups; got != 1 {
-		t.Errorf("3 redirects made %d slug lookups, want 1", got)
+	if got := s.queries.slugLookups - lookups; got != 0 {
+		t.Errorf("3 redirects of a new link made %d slug lookups, want 0", got)
 	}
 
 	if w := s.do(t, 1, "DELETE", "/api/v1/links/"+strconv.FormatInt(created.ID, 10), nil, nil); w.Code != http.StatusNoContent {
@@ -67,19 +69,49 @@ func TestRedirectCache(t *testing.T) {
 
 func TestRedirectCacheRespectsExpiry(t *testing.T) {
 	s := newTestServer(testOptions{cacheSize: 100})
-	created := decode[linkResponse](t, s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com"}, nil))
-	s.queries.links[0].ExpiresAt = sql.NullTime{Time: s.queries.now.Add(time.Minute), Valid: true}
+	s.queries.links = append(s.queries.links, db.Link{ID: 1, Slug: "expiring", TargetUrl: "https://example.com",
+		IsActive: true, CreatedAt: s.queries.now, ExpiresAt: sql.NullTime{Time: s.queries.now.Add(time.Minute), Valid: true}})
 
-	if w := s.do(t, 0, "GET", "/"+created.Slug, nil, nil); w.Code != http.StatusFound {
+	if w := s.do(t, 0, "GET", "/expiring", nil, nil); w.Code != http.StatusFound {
 		t.Fatalf("before expiry: status = %d, want 302", w.Code)
 	}
 	lookups := s.queries.slugLookups
 	s.now = s.queries.now.Add(2 * time.Minute)
-	if w := s.do(t, 0, "GET", "/"+created.Slug, nil, nil); w.Code != http.StatusNotFound {
+	if w := s.do(t, 0, "GET", "/expiring", nil, nil); w.Code != http.StatusNotFound {
 		t.Errorf("after expiry: status = %d, want 404", w.Code)
 	}
 	if s.queries.slugLookups != lookups {
 		t.Error("expected the expired link to be rejected from the cache")
+	}
+}
+
+func TestAdminTakedownStopsCachedRedirects(t *testing.T) {
+	s := newTestServer(testOptions{cacheSize: 100})
+	s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://phish.example", "slug": "bad-link"}, nil)
+	if w := s.do(t, 0, "GET", "/bad-link", nil, nil); w.Code != http.StatusFound {
+		t.Fatalf("before takedown: status = %d, want 302", w.Code)
+	}
+
+	body := map[string][]string{"slugs": {"bad-link", "never-existed"}}
+	if w := s.do(t, 0, "POST", "/api/v1/admin/takedown", body, nil); w.Code != http.StatusUnauthorized {
+		t.Errorf("without the admin token: status = %d, want 401", w.Code)
+	}
+	w := s.do(t, 0, "POST", "/api/v1/admin/takedown", body, map[string]string{"Authorization": "Bearer " + testAdminToken})
+	if w.Code != http.StatusOK {
+		t.Fatalf("takedown: status = %d, body = %s", w.Code, w.Body)
+	}
+	if resp := decode[struct {
+		Deactivated []string `json:"deactivated"`
+	}](t, w); len(resp.Deactivated) != 1 || resp.Deactivated[0] != "bad-link" {
+		t.Errorf("deactivated = %v, want [bad-link]", resp.Deactivated)
+	}
+	if w := s.do(t, 0, "GET", "/bad-link", nil, nil); w.Code != http.StatusNotFound {
+		t.Errorf("after takedown: status = %d, want 404 even though it was cached", w.Code)
+	}
+
+	empty := map[string][]string{"slugs": {}}
+	if w := s.do(t, 0, "POST", "/api/v1/admin/takedown", empty, map[string]string{"Authorization": "Bearer " + testAdminToken}); w.Code != http.StatusBadRequest {
+		t.Errorf("empty takedown: status = %d, want 400", w.Code)
 	}
 }
 

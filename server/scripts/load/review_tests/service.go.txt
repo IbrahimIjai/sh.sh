@@ -1,0 +1,30 @@
+package service
+
+import (
+    "context"
+    "database/sql"
+    "errors"
+    "testing"
+    "time"
+    db "github.com/ibrahimijai/sh.sh/internal/db/generated"
+)
+
+type reviewDeletedDB struct { db.Querier }
+func (*reviewDeletedDB) GetLinkBySlug(context.Context, string) (db.Link, error) {
+    return db.Link{}, sql.ErrNoRows // deletion has committed
+}
+type reviewRevocationFailure struct { SharedCache; target RedirectTarget }
+func (c *reviewRevocationFailure) Get(context.Context, string) (RedirectTarget, bool, bool, error) {
+    return c.target, true, true, nil // Redis retained its pre-delete value
+}
+func (*reviewRevocationFailure) Revoke(context.Context, string) error { return errors.New("transient Redis write failure") }
+
+func TestReviewFailedRevocationCannotResurrectLocally(t *testing.T) {
+    shared := &reviewRevocationFailure{target: RedirectTarget{ID: 1, Slug: "removed", TargetURL: "https://example.com"}}
+    redirects := NewRedirectService(&reviewDeletedDB{}, RedirectConfig{CacheSize: 10, CacheTTL: time.Minute, Shared: shared})
+    if _, found, err := redirects.Resolve(context.Background(), "removed"); err != nil || !found { t.Fatal("fixture not cached") }
+    redirects.Revoke(context.Background(), "removed")
+    _, found, err := redirects.Resolve(context.Background(), "removed")
+    if err != nil { t.Fatal(err) }
+    if found { t.Fatal("a deleted link was restored from stale Redis on the same API after Revoke failed") }
+}

@@ -96,3 +96,29 @@ func TestLoadLinkCacheConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadClickQueueConfig(t *testing.T) {
+	for _, tt := range []struct {
+		name, redisURL, queue string
+		want                  string
+		wantErr               bool
+	}{
+		{"memory without redis", "", "", "memory", false},
+		{"redis when configured", "redis://localhost:6379/0", "", "redis", false},
+		{"memory by choice", "redis://localhost:6379/0", "memory", "memory", false},
+		{"redis without url", "", "redis", "", true},
+		{"unknown", "", "kafka", "", true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("REDIS_URL", tt.redisURL)
+			t.Setenv("CLICK_QUEUE", tt.queue)
+			cfg, err := Load()
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Load error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err == nil && cfg.ClickQueue != tt.want {
+				t.Fatalf("click queue = %q, want %q", cfg.ClickQueue, tt.want)
+			}
+		})
+	}
+}

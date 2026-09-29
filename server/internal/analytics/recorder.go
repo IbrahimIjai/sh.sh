@@ -2,7 +2,6 @@ package analytics
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"log"
 	mathrand "math/rand/v2"
@@ -13,17 +12,28 @@ import (
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 )
 
+// ClickStore stores a batch of clicks and returns how many were new; clicks already stored are skipped.
 type ClickStore interface {
-	RecordClicks(ctx context.Context, arg db.RecordClicksParams) error
+	RecordClicks(ctx context.Context, arg db.RecordClicksParams) (int64, error)
 }
 
 type RecorderConfig struct {
 	BufferSize   int           // clicks waiting to be written; more are dropped. Default 10000.
 	BatchSize    int           // clicks per insert. Default 500.
+	Writers      int           // batches written in parallel. Default 1.
 	FlushEvery   time.Duration // how long a partial batch may wait. Default 1s.
 	WriteTimeout time.Duration // deadline for each database attempt. Default 10s.
 	RetryMin     time.Duration // initial retry delay, with jitter. Default 100ms.
 	RetryMax     time.Duration // maximum retry delay. Default 5s.
+}
+
+// RecorderStats are totals since the recorder started.
+type RecorderStats struct {
+	Written      uint64
+	Duplicates   uint64 // written clicks that were already stored, from retried batches
+	Dropped      uint64
+	FailedWrites uint64
+	Batches      uint64
 }
 
 // Recorder writes clicks in the background so redirects never wait on the database.
@@ -36,10 +46,18 @@ type Recorder struct {
 	quit      chan struct{}
 	done      chan struct{}
 	closeOnce sync.Once
-	dropped   atomic.Int64
+	dropped   atomic.Int64 // since the last log line
 	ctx       context.Context
 	cancel    context.CancelFunc
-	err       error // written by run, read only after done closes
+
+	written      atomic.Uint64
+	duplicates   atomic.Uint64
+	droppedTotal atomic.Uint64
+	failedWrites atomic.Uint64
+	batches      atomic.Uint64
+
+	errMu sync.Mutex
+	err   error // read only after done closes
 }
 
 func NewRecorder(store ClickStore, cfg RecorderConfig) *Recorder {
@@ -48,6 +66,9 @@ func NewRecorder(store ClickStore, cfg RecorderConfig) *Recorder {
 	}
 	if cfg.BatchSize <= 0 {
 		cfg.BatchSize = 500
+	}
+	if cfg.Writers <= 0 {
+		cfg.Writers = 1
 	}
 	if cfg.FlushEvery <= 0 {
 		cfg.FlushEvery = time.Second
@@ -83,6 +104,10 @@ func (r *Recorder) Record(click Click) {
 	if click.CreatedAt.IsZero() {
 		click.CreatedAt = time.Now()
 	}
+	click.CreatedAt = click.CreatedAt.Truncate(time.Microsecond)
+	if click.EventID == "" {
+		click.EventID = NewEventID()
+	}
 	select {
 	case <-r.quit:
 		return
@@ -92,6 +117,22 @@ func (r *Recorder) Record(click Click) {
 	case r.events <- click:
 	default:
 		r.dropped.Add(1)
+		r.droppedTotal.Add(1)
+	}
+}
+
+// QueueDepth is the number of clicks waiting in the buffer.
+func (r *Recorder) QueueDepth() int {
+	return len(r.events)
+}
+
+func (r *Recorder) Stats() RecorderStats {
+	return RecorderStats{
+		Written:      r.written.Load(),
+		Duplicates:   r.duplicates.Load(),
+		Dropped:      r.droppedTotal.Load(),
+		FailedWrites: r.failedWrites.Load(),
+		Batches:      r.batches.Load(),
 	}
 }
 
@@ -113,6 +154,22 @@ func (r *Recorder) run() {
 	defer close(r.done)
 	defer r.cancel()
 
+	var wg sync.WaitGroup
+	for range r.cfg.Writers {
+		wg.Go(r.work)
+	}
+	wg.Wait()
+}
+
+func (r *Recorder) fail(err error) {
+	r.errMu.Lock()
+	defer r.errMu.Unlock()
+	if r.err == nil {
+		r.err = err
+	}
+}
+
+func (r *Recorder) work() {
 	ticker := time.NewTicker(r.cfg.FlushEvery)
 	defer ticker.Stop()
 
@@ -120,8 +177,9 @@ func (r *Recorder) run() {
 	flush := func() bool {
 		if len(batch) > 0 {
 			if err := r.write(batch); err != nil {
-				r.err = fmt.Errorf("%d clicks unconfirmed at shutdown: %w", len(batch)+len(r.events), err)
-				log.Printf("click recorder: %v", r.err)
+				err = fmt.Errorf("%d clicks unconfirmed at shutdown: %w", len(batch)+len(r.events), err)
+				log.Printf("click recorder: %v", err)
+				r.fail(err)
 				return false
 			}
 			batch = batch[:0]
@@ -165,26 +223,9 @@ func (r *Recorder) run() {
 }
 
 func (r *Recorder) write(batch []Click) error {
-	// Generate once, outside the retry loop. The database receipt makes a replay
-	// safe even when an attempt committed but its acknowledgement never arrived.
-	params := db.RecordClicksParams{BatchID: rand.Text()}
-	for _, c := range batch {
-		params.CreatedAts = append(params.CreatedAts, c.CreatedAt)
-		params.LinkIds = append(params.LinkIds, c.LinkID)
-		params.VisitorHashes = append(params.VisitorHashes, c.VisitorHash)
-		params.UserAgents = append(params.UserAgents, c.UserAgent)
-		params.RefererHosts = append(params.RefererHosts, c.RefererHost)
-		params.Sources = append(params.Sources, c.Source)
-		params.UtmSources = append(params.UtmSources, c.UTMSource)
-		params.UtmMediums = append(params.UtmMediums, c.UTMMedium)
-		params.UtmCampaigns = append(params.UtmCampaigns, c.UTMCampaign)
-		params.DeviceTypes = append(params.DeviceTypes, c.DeviceType)
-		params.Browsers = append(params.Browsers, c.Browser)
-		params.Oses = append(params.Oses, c.OS)
-		params.Countries = append(params.Countries, c.Country)
-		params.Cities = append(params.Cities, c.City)
-		params.IsBots = append(params.IsBots, c.IsBot)
-	}
+	// The event IDs make a retry safe even when an attempt committed but its acknowledgement
+	// never arrived.
+	params := BatchParams(batch)
 
 	delay := r.cfg.RetryMin
 	for attempt := 1; ; attempt++ {
@@ -192,14 +233,18 @@ func (r *Recorder) write(batch []Click) error {
 			return err
 		}
 		ctx, cancel := context.WithTimeout(r.ctx, r.cfg.WriteTimeout)
-		err := r.store.RecordClicks(ctx, params)
+		inserted, err := r.store.RecordClicks(ctx, params)
 		cancel()
 		if err == nil {
+			r.written.Add(uint64(len(batch)))
+			r.duplicates.Add(uint64(len(batch) - int(inserted)))
+			r.batches.Add(1)
 			if attempt > 1 {
 				log.Printf("click recorder: recovered batch of %d clicks after %d attempts", len(batch), attempt)
 			}
 			return nil
 		}
+		r.failedWrites.Add(1)
 		if r.ctx.Err() != nil {
 			return fmt.Errorf("last write: %v: %w", err, r.ctx.Err())
 		}

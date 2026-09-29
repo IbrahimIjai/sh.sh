@@ -15,6 +15,7 @@ import (
 	"github.com/ibrahimijai/sh.sh/internal/analytics"
 	"github.com/ibrahimijai/sh.sh/internal/auth"
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
+	"github.com/ibrahimijai/sh.sh/internal/middleware"
 	"github.com/ibrahimijai/sh.sh/internal/service"
 )
 
@@ -29,11 +30,19 @@ type fakeQueries struct {
 	now   time.Time
 
 	slugLookups int
+	counters    map[int64]int64
 
-	breakdown []db.ListClickBreakdownByLinkRow
+	breakdown []db.ListClickDimensionsByLinkRow
 	daily     []db.ListDailyClicksByLinkRow
 	totals    db.GetClickTotalsByLinkRow
 	statsArgs []time.Time
+	statsGate chan struct{}
+
+	rolledDays    []time.Time
+	rollupTotals  db.GetRollupTotalsByLinkRow
+	rollupDaily   []db.ListRollupDailyByLinkRow
+	rollupDims    []db.ListRollupDimensionsByLinkRow
+	rollupWindows []db.GetRollupTotalsByLinkParams
 }
 
 // CreateLink mimics ON CONFLICT (slug) DO NOTHING: a taken slug returns no row.
@@ -136,16 +145,76 @@ func (f *fakeQueries) ClaimLinks(_ context.Context, arg db.ClaimLinksParams) ([]
 }
 
 func (f *fakeQueries) GetClickTotalsByLink(_ context.Context, arg db.GetClickTotalsByLinkParams) (db.GetClickTotalsByLinkRow, error) {
+	f.mu.Lock()
 	f.statsArgs = append(f.statsArgs, arg.CreatedAt)
+	gate := f.statsGate
+	f.mu.Unlock()
+	if gate != nil {
+		<-gate
+	}
 	return f.totals, nil
+}
+
+func (f *fakeQueries) statsCalls() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.statsArgs)
 }
 
 func (f *fakeQueries) ListDailyClicksByLink(_ context.Context, _ db.ListDailyClicksByLinkParams) ([]db.ListDailyClicksByLinkRow, error) {
 	return f.daily, nil
 }
 
-func (f *fakeQueries) ListClickBreakdownByLink(_ context.Context, _ db.ListClickBreakdownByLinkParams) ([]db.ListClickBreakdownByLinkRow, error) {
+func (f *fakeQueries) ListClickDimensionsByLink(_ context.Context, _ db.ListClickDimensionsByLinkParams) ([]db.ListClickDimensionsByLinkRow, error) {
 	return f.breakdown, nil
+}
+
+func (f *fakeQueries) ListRolledDays(_ context.Context, arg db.ListRolledDaysParams) ([]time.Time, error) {
+	var days []time.Time
+	for _, d := range f.rolledDays {
+		if !d.Before(arg.Since) && d.Before(arg.Until) {
+			days = append(days, d)
+		}
+	}
+	return days, nil
+}
+
+func (f *fakeQueries) GetRollupTotalsByLink(_ context.Context, arg db.GetRollupTotalsByLinkParams) (db.GetRollupTotalsByLinkRow, error) {
+	f.rollupWindows = append(f.rollupWindows, arg)
+	return f.rollupTotals, nil
+}
+
+func (f *fakeQueries) ListRollupDailyByLink(_ context.Context, _ db.ListRollupDailyByLinkParams) ([]db.ListRollupDailyByLinkRow, error) {
+	return f.rollupDaily, nil
+}
+
+func (f *fakeQueries) ListRollupDimensionsByLink(_ context.Context, _ db.ListRollupDimensionsByLinkParams) ([]db.ListRollupDimensionsByLinkRow, error) {
+	return f.rollupDims, nil
+}
+
+func (f *fakeQueries) ListClickCounts(_ context.Context, ids []int64) ([]db.LinkCounter, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var rows []db.LinkCounter
+	for _, id := range ids {
+		if n, ok := f.counters[id]; ok {
+			rows = append(rows, db.LinkCounter{LinkID: id, HumanClicks: n})
+		}
+	}
+	return rows, nil
+}
+
+func (f *fakeQueries) DeactivateLinksBySlugs(_ context.Context, slugs []string) ([]string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	taken := []string{}
+	for i, l := range f.links {
+		if l.IsActive && slices.Contains(slugs, l.Slug) {
+			f.links[i].IsActive = false
+			taken = append(taken, l.Slug)
+		}
+	}
+	return taken, nil
 }
 
 type fakeClicks struct {
@@ -169,10 +238,13 @@ func (f fakeChecker) Check(context.Context, string) ([]string, error) {
 }
 
 type testOptions struct {
-	checker   service.URLChecker
-	cacheSize int
-	newSlug   func() (string, error)
+	checker    service.URLChecker
+	cacheSize  int
+	newSlug    func() (string, error)
+	maxReports int
 }
+
+const testAdminToken = "test-admin-token-0123456789abcdef"
 
 type testServer struct {
 	queries   *fakeQueries
@@ -180,12 +252,13 @@ type testServer struct {
 	now       time.Time
 	links     *LinkHandler
 	redirects *RedirectHandler
+	admin     *AdminHandler
 }
 
 // newTestServer wires the real services over fakeQueries. Tests move time forward by setting now.
 func newTestServer(opts testOptions) *testServer {
 	now := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
-	s := &testServer{queries: &fakeQueries{now: now}, clicks: &fakeClicks{}, now: now}
+	s := &testServer{queries: &fakeQueries{now: now, counters: map[int64]int64{}}, clicks: &fakeClicks{}, now: now}
 	clock := func() time.Time { return s.now }
 	hasher := analytics.NewHasher("test-secret")
 
@@ -195,17 +268,19 @@ func newTestServer(opts testOptions) *testServer {
 		Now:       clock,
 	})
 	links := service.NewLinkService(s.queries, service.LinkConfig{
-		Hasher:    hasher,
-		Safety:    opts.checker,
-		Redirects: redirects,
-		OwnHost:   "localhost:8080",
-		Now:       clock,
-		NewSlug:   opts.newSlug,
+		Hasher:               hasher,
+		Safety:               opts.checker,
+		Redirects:            redirects,
+		OwnHost:              "localhost:8080",
+		Now:                  clock,
+		NewSlug:              opts.newSlug,
+		MaxConcurrentReports: opts.maxReports,
 	})
 	collector := analytics.NewCollector(analytics.CollectorConfig{Hasher: hasher, OwnHost: "localhost:8080"})
 
 	s.links = NewLinkHandler(links, testBaseURL+"/")
 	s.redirects = NewRedirectHandler(redirects, collector, s.clicks, testBaseURL+"/")
+	s.admin = NewAdminHandler(links)
 	return s
 }
 
@@ -227,6 +302,7 @@ func (s *testServer) do(t *testing.T, userID int64, method, path string, body an
 	r.POST("/api/v1/links/claim", asUser, s.links.Claim)
 	r.GET("/api/v1/links/:id/stats", asUser, s.links.Stats)
 	r.DELETE("/api/v1/links/:id", asUser, s.links.Delete)
+	r.POST("/api/v1/admin/takedown", middleware.AdminToken(testAdminToken), s.admin.Takedown)
 	r.NoRoute(s.redirects.Redirect)
 
 	var reader *bytes.Reader

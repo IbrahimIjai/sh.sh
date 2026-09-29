@@ -4,33 +4,73 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
+	"sync/atomic"
 	"time"
 
 	"github.com/ibrahimijai/sh.sh/internal/cache"
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 )
 
+const (
+	sharedReadTimeout  = 50 * time.Millisecond
+	sharedWriteTimeout = 2 * time.Second
+)
+
 // RedirectTarget is the part of a link that redirects and previews need.
 type RedirectTarget struct {
-	ID        int64
-	Slug      string
-	TargetURL string
-	Title     string
-	CreatedAt time.Time
-	ExpiresAt sql.NullTime
+	ID        int64        `json:"id"`
+	Slug      string       `json:"slug"`
+	TargetURL string       `json:"target_url"`
+	Title     string       `json:"title,omitempty"`
+	CreatedAt time.Time    `json:"created_at"`
+	ExpiresAt sql.NullTime `json:"expires_at"`
+}
+
+// SharedCache is the cache shared by every API instance (Redis). Errors mean it is unavailable,
+// never that a link doesn't exist.
+type SharedCache interface {
+	// Get reports hit=false when the slug isn't cached. A revoked slug is a hit with found=false.
+	Get(ctx context.Context, slug string) (target RedirectTarget, found, hit bool, err error)
+	// Fill caches a found link unless the slug already holds a value or a revocation.
+	Fill(ctx context.Context, slug string, target RedirectTarget) error
+	// Revoke replaces the slug with a revocation and tells every instance to forget it.
+	Revoke(ctx context.Context, slug string) error
+	// Announce tells every instance to forget the slug, clearing cached "not found" entries.
+	Announce(ctx context.Context, slug string) error
+	// Subscribe calls forget for every slug announced or revoked by any instance, until ctx ends.
+	Subscribe(ctx context.Context, forget func(slug string)) error
 }
 
 type RedirectConfig struct {
-	// CacheSize 0 turns the cache off.
+	// CacheSize 0 turns the in-process cache off.
 	CacheSize int
 	CacheTTL  time.Duration
-	Now       func() time.Time
+	// StaleFor serves an expired cached link this long past its TTL while the database is failing.
+	StaleFor time.Duration
+	// MaxDBLoads caps concurrent database lookups caused by cache misses. 0 means no cap.
+	MaxDBLoads int
+	// Shared is optional; without it each instance only has its own cache.
+	Shared SharedCache
+	Now    func() time.Time
+}
+
+type RedirectStats struct {
+	Local    cache.Stats
+	L2Hits   uint64
+	L2Misses uint64
+	L2Errors uint64
+	DBLoads  uint64
 }
 
 type RedirectService struct {
 	queries db.Querier
 	cache   *cache.TTL[RedirectTarget]
+	shared  SharedCache
+	dbSlots chan struct{}
 	now     func() time.Time
+
+	l2Hits, l2Misses, l2Errors, dbLoads atomic.Uint64
 }
 
 func NewRedirectService(queries db.Querier, cfg RedirectConfig) *RedirectService {
@@ -38,10 +78,43 @@ func NewRedirectService(queries db.Querier, cfg RedirectConfig) *RedirectService
 	if now == nil {
 		now = time.Now
 	}
-	return &RedirectService{
+	s := &RedirectService{
 		queries: queries,
-		cache:   cache.New[RedirectTarget](cfg.CacheSize, cfg.CacheTTL, min(cfg.CacheTTL, 5*time.Second)),
+		cache:   cache.New[RedirectTarget](cfg.CacheSize, cfg.CacheTTL, min(cfg.CacheTTL, 5*time.Second)).WithStale(cfg.StaleFor),
+		shared:  cfg.Shared,
 		now:     now,
+	}
+	if cfg.MaxDBLoads > 0 {
+		s.dbSlots = make(chan struct{}, cfg.MaxDBLoads)
+	}
+	return s
+}
+
+// Start applies other instances' invalidations to this instance's cache until ctx ends.
+func (s *RedirectService) Start(ctx context.Context) {
+	if s.shared == nil {
+		return
+	}
+	go func() {
+		for ctx.Err() == nil {
+			if err := s.shared.Subscribe(ctx, s.cache.Forget); err != nil && ctx.Err() == nil {
+				log.Printf("redirect cache: invalidation subscription: %v", err)
+				select {
+				case <-ctx.Done():
+				case <-time.After(time.Second):
+				}
+			}
+		}
+	}()
+}
+
+func (s *RedirectService) Stats() RedirectStats {
+	return RedirectStats{
+		Local:    s.cache.Stats(),
+		L2Hits:   s.l2Hits.Load(),
+		L2Misses: s.l2Misses.Load(),
+		L2Errors: s.l2Errors.Load(),
+		DBLoads:  s.dbLoads.Load(),
 	}
 }
 
@@ -58,12 +131,64 @@ func (s *RedirectService) Resolve(ctx context.Context, slug string) (RedirectTar
 	return link, found, nil
 }
 
-// Forget drops a slug from the cache after its link is created or deleted.
-func (s *RedirectService) Forget(slug string) {
+// Prime caches a new link here and in the shared cache, and makes every other instance forget
+// a remembered "not found" for its slug, so its first redirects don't wait on the database.
+func (s *RedirectService) Prime(ctx context.Context, link db.Link) {
+	target := redirectTarget(link)
+	s.cache.Set(link.Slug, target)
+	if s.shared == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sharedWriteTimeout)
+	defer cancel()
+	if err := s.shared.Fill(ctx, link.Slug, target); err != nil {
+		s.l2Errors.Add(1)
+	}
+	if err := s.shared.Announce(ctx, link.Slug); err != nil {
+		s.l2Errors.Add(1)
+		log.Printf("redirect cache: announce %q: %v", link.Slug, err)
+	}
+}
+
+// Revoke stops a deleted or taken-down slug from resolving on every instance.
+func (s *RedirectService) Revoke(ctx context.Context, slug string) {
 	s.cache.Forget(slug)
+	if s.shared == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sharedWriteTimeout)
+	defer cancel()
+	if err := s.shared.Revoke(ctx, slug); err != nil {
+		s.l2Errors.Add(1)
+		log.Printf("redirect cache: revoke %q: %v; other instances may serve it until their cache expires", slug, err)
+	}
 }
 
 func (s *RedirectService) load(ctx context.Context, slug string) (RedirectTarget, bool, error) {
+	if s.shared != nil {
+		readCtx, cancel := context.WithTimeout(ctx, sharedReadTimeout)
+		target, found, hit, err := s.shared.Get(readCtx, slug)
+		cancel()
+		switch {
+		case err != nil:
+			s.l2Errors.Add(1)
+		case hit:
+			s.l2Hits.Add(1)
+			return target, found, nil
+		default:
+			s.l2Misses.Add(1)
+		}
+	}
+
+	if s.dbSlots != nil {
+		select {
+		case s.dbSlots <- struct{}{}:
+			defer func() { <-s.dbSlots }()
+		case <-ctx.Done():
+			return RedirectTarget{}, false, ctx.Err()
+		}
+	}
+	s.dbLoads.Add(1)
 	link, err := s.queries.GetLinkBySlug(ctx, slug)
 	if errors.Is(err, sql.ErrNoRows) {
 		return RedirectTarget{}, false, nil
@@ -71,6 +196,18 @@ func (s *RedirectService) load(ctx context.Context, slug string) (RedirectTarget
 	if err != nil {
 		return RedirectTarget{}, false, err
 	}
+	target := redirectTarget(link)
+	if s.shared != nil {
+		fillCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sharedWriteTimeout)
+		if err := s.shared.Fill(fillCtx, slug, target); err != nil {
+			s.l2Errors.Add(1)
+		}
+		cancel()
+	}
+	return target, true, nil
+}
+
+func redirectTarget(link db.Link) RedirectTarget {
 	return RedirectTarget{
 		ID:        link.ID,
 		Slug:      link.Slug,
@@ -78,5 +215,5 @@ func (s *RedirectService) load(ctx context.Context, slug string) (RedirectTarget
 		Title:     link.Title.String,
 		CreatedAt: link.CreatedAt,
 		ExpiresAt: link.ExpiresAt,
-	}, true, nil
+	}
 }

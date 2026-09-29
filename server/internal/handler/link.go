@@ -41,7 +41,7 @@ func (h *LinkHandler) Create(c *gin.Context) {
 		return
 	}
 
-	resp := newLinkResponse(h.baseURL, created.Link)
+	resp := newLinkResponse(h.baseURL, created.Link, 0)
 	resp.ClaimToken = created.ClaimToken
 	c.JSON(http.StatusCreated, resp)
 }
