@@ -69,6 +69,11 @@ in `.env` to use it from `go run`. Without `REDIS_URL` the API runs with its in-
 
 ### 4. Run migrations (goose)
 
+The API applies pending migrations itself at startup (`RUN_MIGRATIONS=true`, the default). The SQL
+files are embedded in the binary, and a Postgres advisory lock lets one instance migrate while
+others wait. If a migration fails, the API logs which one and exits without serving.
+
+Use the goose CLI to inspect the schema, roll back, or migrate without starting the API.
 `.env` defines `GOOSE_DRIVER`, `GOOSE_DBSTRING`, and `GOOSE_MIGRATION_DIR`, and the goose CLI
 auto-loads `.env` from the current directory — so run it bare from `server/`:
 
@@ -245,6 +250,11 @@ fail with 400. If Web Risk is unreachable, links are still created.
 
 ```sh
 go test -race ./...                 # unit tests (no database needed)
+
+# Before pushing a new migration: apply every migration to a fresh schema, roll all of them
+# back, and apply them again. Catches broken Up and Down sections.
+TEST_DATABASE_URL='postgres://postgres:postgres@localhost:5434/myapp?sslmode=disable' \
+  go test -count=1 -run TestMigrations ./internal/database
 
 # Optional PostgreSQL integration tests. Creates and removes an isolated schema;
 # the test user needs permission to create schemas. Use a local test database.

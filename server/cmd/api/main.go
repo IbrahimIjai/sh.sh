@@ -43,6 +43,19 @@ func main() {
 	defer conn.Close()
 	log.Printf("database pool: max open=%d, max idle=%d", cfg.DBMaxOpenConns, cfg.DBMaxIdleConns)
 
+	if cfg.RunMigrations {
+		applied, version, err := database.Migrate(ctx, conn)
+		for _, file := range applied {
+			log.Printf("migrations: applied %s", file)
+		}
+		if err != nil {
+			log.Fatalf("failed to run migrations: %v", err)
+		}
+		log.Printf("migrations: schema at version %d", version)
+	} else {
+		log.Println("migrations: skipped (RUN_MIGRATIONS=false)")
+	}
+
 	authServer, err := auth.New(cfg, conn)
 	if err != nil {
 		log.Fatalf("failed to configure auth: %v", err)

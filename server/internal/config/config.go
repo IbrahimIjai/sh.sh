@@ -12,8 +12,10 @@ type Config struct {
 	Port string
 	Env  string
 
-	BaseURL           string
-	DatabaseURL       string
+	BaseURL     string
+	DatabaseURL string
+	// RunMigrations applies pending db/migrations at startup, before anything else touches the database.
+	RunMigrations     bool
 	DBMaxOpenConns    int
 	DBMaxIdleConns    int
 	LinkCacheSize     int
@@ -118,6 +120,10 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("LINK_CACHE_STALE must be 0 or more; CLICK_BUFFER_SIZE, CLICK_BATCH_SIZE, CLICK_WRITERS, " +
 			"CLICK_RAW_RETENTION_DAYS and MAINTENANCE_INTERVAL must be positive")
 	}
+	runMigrations, err := envBool("RUN_MIGRATIONS", true)
+	if err != nil {
+		return Config{}, err
+	}
 	asyncCommit, err := envBool("CLICK_ASYNC_COMMIT", true)
 	if err != nil {
 		return Config{}, err
@@ -194,6 +200,7 @@ func Load() (Config, error) {
 		BaseURL:               baseURL,
 		AppURL:                strings.TrimRight(strings.TrimSpace(os.Getenv("APP_URL")), "/"),
 		DatabaseURL:           os.Getenv("DATABASE_URL"),
+		RunMigrations:         runMigrations,
 		DBMaxOpenConns:        maxOpen,
 		DBMaxIdleConns:        maxIdle,
 		LinkCacheSize:         cacheSize,
