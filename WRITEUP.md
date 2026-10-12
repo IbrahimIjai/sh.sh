@@ -413,6 +413,10 @@ between 2,000 and 3,000 redirects a second.
 The Go service was the cheapest part of the path. At 2,000 redirects/sec it used about half a vCPU
 and 115 MB of memory, while TLS termination and the load generator took two of the four vCPUs.
 
+The script used for this run started its 20-second warm-up clock separately for each k6 virtual
+user, so users added mid-run had their first 20 seconds left out of the measured minute. The figures
+are approximate; the script now times the warm-up from the scenario start.
+
 These numbers are an upper bound for real visitors. k6 kept its connections open, but a visitor
 arriving from a shared link usually performs a fresh TLS handshake, which costs Traefik more. Every
 request hit one cached link, and the load generator competed with the service for CPU. The
