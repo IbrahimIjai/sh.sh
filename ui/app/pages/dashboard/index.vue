@@ -94,7 +94,7 @@ function confirmDelete() {
       :show-history="false"
     />
 
-    <div class="mt-10">
+    <div class="mt-6">
       <UInput
         v-if="all.length > 5"
         v-model="search"
