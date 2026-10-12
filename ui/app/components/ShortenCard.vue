@@ -3,6 +3,8 @@ import { toast } from 'vue-sonner'
 
 const MAX_URL_LENGTH = 2048
 
+const { showHistory = true } = defineProps<{ showHistory?: boolean }>()
+
 const { copy, copied, isSupported: canCopy } = useClipboard({ copiedDuring: 2000, legacy: true })
 const { data: user } = useCurrentUser()
 const createLink = useCreateLink()
@@ -192,7 +194,7 @@ watch(longUrl, () => {
         Shorten another
       </UButton>
       <div
-        v-if="history.links.value.length"
+        v-if="showHistory && history.links.value.length"
         class="sm:ms-auto"
       >
         <LinkHistoryDrawer />
