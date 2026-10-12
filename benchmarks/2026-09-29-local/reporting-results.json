@@ -1,0 +1,376 @@
+[
+  {
+    "stage": "ramp-1-300dash",
+    "active_dashboards": 300,
+    "target_stats_rps": 10.0,
+    "target_redirect_rps": 1000,
+    "duration_s": 30,
+    "measured_seconds": 30.007467148,
+    "completed_duration": true,
+    "burst_target": 0,
+    "http_requests": 30302,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_redirects": 0,
+    "dropped_stats": 0,
+    "dropped_burst": 0,
+    "redirect_attempts": 30001,
+    "redirects": 30001,
+    "redirect_rps": 999.7844820434826,
+    "stats_attempts": 301,
+    "successful_stats": 301,
+    "stats_rps": 10.030836608615989,
+    "distinct_dashboard_accounts_attempted": 300,
+    "burst_attempts": 0,
+    "successful_burst": 0,
+    "latency_ms": {
+      "p(99)": 2.046314,
+      "max": 61.018439,
+      "avg": 0.4506731086963726,
+      "med": 0.19895,
+      "p(95)": 1.041436
+    },
+    "stats_latency_ms": {
+      "avg": 7.306217421926909,
+      "med": 6.496477,
+      "p(95)": 9.793398,
+      "p(99)": 21.072853,
+      "max": 78.314817
+    },
+    "large_link_stats_latency_ms": {},
+    "popular_link_stats_latency_ms": {
+      "avg": 10.28275742857143,
+      "med": 8.090386,
+      "p(95)": 17.210127199999995,
+      "p(99)": 18.64007984,
+      "max": 18.997568
+    },
+    "standard_link_stats_latency_ms": {
+      "avg": 7.235347421768707,
+      "med": 6.4642605,
+      "p(95)": 9.68031,
+      "p(99)": 21.393993189999968,
+      "max": 78.314817
+    },
+    "burst_latency_ms": {},
+    "expected_clicks": [
+      30001,
+      26998,
+      3003
+    ],
+    "stored_clicks": [
+      30001,
+      26998,
+      3003
+    ],
+    "link_counter_delta": 26998,
+    "analytics_match": true,
+    "k6_exit_code": 0,
+    "thresholds_passed": true,
+    "passed": true
+  },
+  {
+    "stage": "ramp-2-1500dash",
+    "active_dashboards": 1500,
+    "target_stats_rps": 50.0,
+    "target_redirect_rps": 1000,
+    "duration_s": 30,
+    "measured_seconds": 30.001999219,
+    "completed_duration": true,
+    "burst_target": 0,
+    "http_requests": 31501,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_redirects": 0,
+    "dropped_stats": 0,
+    "dropped_burst": 0,
+    "redirect_attempts": 30001,
+    "redirects": 30001,
+    "redirect_rps": 999.9666949194716,
+    "stats_attempts": 1500,
+    "successful_stats": 1500,
+    "stats_rps": 49.99666819036723,
+    "distinct_dashboard_accounts_attempted": 1500,
+    "burst_attempts": 0,
+    "successful_burst": 0,
+    "latency_ms": {
+      "max": 9.980956,
+      "avg": 0.27063697223425853,
+      "med": 0.219011,
+      "p(95)": 0.518956,
+      "p(99)": 1.196152
+    },
+    "stats_latency_ms": {
+      "avg": 9.213478015333322,
+      "med": 7.0253215,
+      "p(95)": 21.385187900000002,
+      "p(99)": 29.64874945,
+      "max": 39.557121
+    },
+    "large_link_stats_latency_ms": {},
+    "popular_link_stats_latency_ms": {
+      "max": 29.404907,
+      "avg": 13.892121310344827,
+      "med": 11.292289,
+      "p(95)": 26.898341599999988,
+      "p(99)": 29.329776000000003
+    },
+    "standard_link_stats_latency_ms": {
+      "p(95)": 21.2857135,
+      "p(99)": 29.6525035,
+      "max": 39.557121,
+      "avg": 9.121240995921132,
+      "med": 6.99136
+    },
+    "burst_latency_ms": {},
+    "expected_clicks": [
+      30001,
+      26998,
+      3003
+    ],
+    "stored_clicks": [
+      30001,
+      26998,
+      3003
+    ],
+    "link_counter_delta": 26998,
+    "analytics_match": true,
+    "k6_exit_code": 0,
+    "thresholds_passed": true,
+    "passed": true
+  },
+  {
+    "stage": "ramp-3-5000dash",
+    "active_dashboards": 5000,
+    "target_stats_rps": 166.66666666666666,
+    "target_redirect_rps": 1000,
+    "duration_s": 30,
+    "measured_seconds": 30.009372313,
+    "completed_duration": true,
+    "burst_target": 0,
+    "http_requests": 35002,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_redirects": 0,
+    "dropped_stats": 0,
+    "dropped_burst": 0,
+    "redirect_attempts": 30001,
+    "redirects": 30001,
+    "redirect_rps": 999.7210100593683,
+    "stats_attempts": 5001,
+    "successful_stats": 5001,
+    "stats_rps": 166.6479374456485,
+    "distinct_dashboard_accounts_attempted": 5000,
+    "burst_attempts": 0,
+    "successful_burst": 0,
+    "latency_ms": {
+      "max": 47.144997,
+      "avg": 0.3422635560148007,
+      "med": 0.240836,
+      "p(95)": 0.669022,
+      "p(99)": 1.652925
+    },
+    "stats_latency_ms": {
+      "med": 6.451165,
+      "p(95)": 12.509448,
+      "p(99)": 25.362626,
+      "max": 179.319886,
+      "avg": 7.445114296740648
+    },
+    "large_link_stats_latency_ms": {
+      "avg": 179.319886,
+      "med": 179.319886,
+      "p(95)": 179.319886,
+      "p(99)": 179.319886,
+      "max": 179.319886
+    },
+    "popular_link_stats_latency_ms": {
+      "p(99)": 37.62788613999995,
+      "max": 49.741771,
+      "avg": 13.564082505050504,
+      "med": 11.952718,
+      "p(95)": 22.5002083
+    },
+    "standard_link_stats_latency_ms": {
+      "avg": 7.286442061620066,
+      "med": 6.42721,
+      "p(95)": 11.686081,
+      "p(99)": 24.325937,
+      "max": 69.071509
+    },
+    "burst_latency_ms": {},
+    "expected_clicks": [
+      30001,
+      26998,
+      3003
+    ],
+    "stored_clicks": [
+      30001,
+      26998,
+      3003
+    ],
+    "link_counter_delta": 26998,
+    "analytics_match": true,
+    "k6_exit_code": 0,
+    "thresholds_passed": true,
+    "passed": true
+  },
+  {
+    "stage": "confirm-5000dash",
+    "active_dashboards": 5000,
+    "target_stats_rps": 166.66666666666666,
+    "target_redirect_rps": 1000,
+    "duration_s": 60,
+    "measured_seconds": 60.009690715,
+    "completed_duration": true,
+    "burst_target": 0,
+    "http_requests": 70002,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_redirects": 0,
+    "dropped_stats": 0,
+    "dropped_burst": 0,
+    "redirect_attempts": 60001,
+    "redirects": 60001,
+    "redirect_rps": 999.8551781404561,
+    "stats_attempts": 10001,
+    "successful_stats": 10001,
+    "stats_rps": 166.6564163361061,
+    "distinct_dashboard_accounts_attempted": 5000,
+    "burst_attempts": 0,
+    "successful_burst": 0,
+    "latency_ms": {
+      "avg": 0.43549729532841375,
+      "med": 0.233335,
+      "p(95)": 1.127657,
+      "p(99)": 2.888013,
+      "max": 48.150351
+    },
+    "stats_latency_ms": {
+      "avg": 8.067196167283248,
+      "med": 6.397462,
+      "p(95)": 16.52514,
+      "p(99)": 35.558394,
+      "max": 122.123889
+    },
+    "large_link_stats_latency_ms": {
+      "med": 101.644522,
+      "p(95)": 120.07595230000001,
+      "p(99)": 121.71430166,
+      "max": 122.123889,
+      "avg": 101.644522
+    },
+    "popular_link_stats_latency_ms": {
+      "max": 37.107557,
+      "avg": 15.748770969696965,
+      "med": 13.8004935,
+      "p(95)": 26.107320199999986,
+      "p(99)": 35.663937270000005
+    },
+    "standard_link_stats_latency_ms": {
+      "avg": 7.892917373023147,
+      "med": 6.371175,
+      "p(95)": 15.734535,
+      "p(99)": 34.603072,
+      "max": 110.378463
+    },
+    "burst_latency_ms": {},
+    "expected_clicks": [
+      60001,
+      53995,
+      6006
+    ],
+    "stored_clicks": [
+      60001,
+      53995,
+      6006
+    ],
+    "link_counter_delta": 53995,
+    "analytics_match": true,
+    "k6_exit_code": 0,
+    "thresholds_passed": true,
+    "passed": true
+  },
+  {
+    "stage": "burst-5000dash",
+    "active_dashboards": 5000,
+    "target_stats_rps": 166.66666666666666,
+    "target_redirect_rps": 1000,
+    "duration_s": 30,
+    "measured_seconds": 30.00700618,
+    "completed_duration": true,
+    "burst_target": 100,
+    "http_requests": 35103,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_redirects": 0,
+    "dropped_stats": 0,
+    "dropped_burst": 0,
+    "redirect_attempts": 30001,
+    "redirects": 30001,
+    "redirect_rps": 999.7998407450589,
+    "stats_attempts": 5001,
+    "successful_stats": 5001,
+    "stats_rps": 166.66107808293188,
+    "distinct_dashboard_accounts_attempted": 5000,
+    "burst_attempts": 101,
+    "successful_burst": 101,
+    "latency_ms": {
+      "p(95)": 0.581209,
+      "p(99)": 1.398585,
+      "max": 8.089134,
+      "avg": 0.3012295582813893,
+      "med": 0.228629
+    },
+    "stats_latency_ms": {
+      "med": 6.31521,
+      "p(95)": 11.978493,
+      "p(99)": 20.917313,
+      "max": 100.674699,
+      "avg": 7.139392136572685
+    },
+    "large_link_stats_latency_ms": {
+      "p(95)": 100.674699,
+      "p(99)": 100.674699,
+      "max": 100.674699,
+      "avg": 100.674699,
+      "med": 100.674699
+    },
+    "popular_link_stats_latency_ms": {
+      "med": 17.047514,
+      "p(95)": 27.806223,
+      "p(99)": 30.44157915999985,
+      "max": 67.610929,
+      "avg": 18.75056525252525
+    },
+    "standard_link_stats_latency_ms": {
+      "avg": 6.885761970210172,
+      "med": 6.296799,
+      "p(95)": 10.024486,
+      "p(99)": 19.391643,
+      "max": 41.798953
+    },
+    "burst_latency_ms": {
+      "med": 8.756898,
+      "p(95)": 20.044138,
+      "p(99)": 34.187452,
+      "max": 175.821695,
+      "avg": 11.93550607920792
+    },
+    "expected_clicks": [
+      30001,
+      26998,
+      3003
+    ],
+    "stored_clicks": [
+      30001,
+      26998,
+      3003
+    ],
+    "link_counter_delta": 26998,
+    "analytics_match": true,
+    "k6_exit_code": 0,
+    "thresholds_passed": true,
+    "passed": true
+  }
+]

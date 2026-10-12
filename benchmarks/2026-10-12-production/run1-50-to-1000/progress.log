@@ -1,0 +1,16 @@
+=== 50 r/s 13:37:12
+exit=0 health=200
+=== 100 r/s 13:38:32
+exit=0 health=200
+=== 200 r/s 13:39:53
+exit=0 health=200
+=== 400 r/s 13:41:13
+exit=0 health=200
+=== 600 r/s 13:42:33
+exit=0 health=200
+=== 800 r/s 13:43:54
+exit=0 health=200
+=== 1000 r/s 13:45:14
+exit=99 health=200
+stopped at 1000 r/s
+done 13:46:14

@@ -1,0 +1,1061 @@
+[
+  {
+    "stage": {
+      "name": "mixed-1000",
+      "redirects": 1000,
+      "creates": 50,
+      "reports": 10,
+      "seconds": 120
+    },
+    "measured_seconds": 120.013853178,
+    "completed_duration": true,
+    "http_requests": 133202,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_iterations_by_scenario": {
+      "redirect": 0,
+      "create": 0,
+      "report": 0
+    },
+    "incorrect_responses": 0,
+    "redirects": 120001,
+    "redirects_per_second": 999.8929025470006,
+    "redirects_latency_ms": {
+      "avg": 0.29182151642070003,
+      "med": 0.227199,
+      "p(95)": 0.609479,
+      "p(99)": 1.325062,
+      "max": 22.159785
+    },
+    "creates": 6000,
+    "creates_per_second": 49.99422850877912,
+    "creates_latency_ms": {
+      "p(95)": 9.483308400000002,
+      "p(99)": 15.395477190000003,
+      "max": 39.260462,
+      "avg": 3.8645542538333215,
+      "med": 2.9323255
+    },
+    "reports": 1201,
+    "reports_per_second": 10.007178073173955,
+    "reports_latency_ms": {
+      "max": 93.695462,
+      "avg": 7.800088038301425,
+      "med": 7.266802,
+      "p(95)": 12.446504,
+      "p(99)": 19.440519
+    },
+    "humans": 108000,
+    "bots": 12001,
+    "stored_events_human_bot": [
+      120001,
+      108000,
+      12001
+    ],
+    "analytics_match": true,
+    "counter_delta": 108000,
+    "created_rows_unique_slugs_targets": [
+      6000,
+      6000,
+      6000
+    ],
+    "creation_match": true,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          108,
+          108,
+          13
+        ],
+        "database": [
+          108,
+          108,
+          13
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          108,
+          108,
+          12
+        ],
+        "database": [
+          108,
+          108,
+          12
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          108,
+          108,
+          12
+        ],
+        "database": [
+          108,
+          108,
+          12
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 0.8249560510012088,
+    "k6_exit_code": 0,
+    "fault_timeline": [],
+    "passed": true
+  },
+  {
+    "stage": {
+      "name": "mixed-3200",
+      "redirects": 3200,
+      "creates": 100,
+      "reports": 10,
+      "seconds": 60
+    },
+    "measured_seconds": 60.00767822,
+    "completed_duration": true,
+    "http_requests": 204602,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_iterations_by_scenario": {
+      "redirect": 0,
+      "create": 0,
+      "report": 0
+    },
+    "incorrect_responses": 0,
+    "redirects": 192000,
+    "redirects_per_second": 3199.5905473311277,
+    "redirects_latency_ms": {
+      "med": 0.25160499999999997,
+      "p(95)": 1.7066770999999972,
+      "p(99)": 7.939142650000005,
+      "max": 112.682138,
+      "avg": 0.6768661520468807
+    },
+    "creates": 6001,
+    "creates_per_second": 100.00386913819843,
+    "creates_latency_ms": {
+      "med": 3.429019,
+      "p(95)": 15.92855,
+      "p(99)": 34.650918,
+      "max": 214.414557,
+      "avg": 5.9097424137643735
+    },
+    "reports": 600,
+    "reports_per_second": 9.998720460409775,
+    "reports_latency_ms": {
+      "avg": 12.823990750000016,
+      "med": 9.825122499999999,
+      "p(95)": 28.22605199999999,
+      "p(99)": 58.38356472999999,
+      "max": 107.063831
+    },
+    "humans": 172800,
+    "bots": 19200,
+    "stored_events_human_bot": [
+      192000,
+      172800,
+      19200
+    ],
+    "analytics_match": true,
+    "counter_delta": 172800,
+    "created_rows_unique_slugs_targets": [
+      6001,
+      6001,
+      6001
+    ],
+    "creation_match": true,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          280,
+          172,
+          33
+        ],
+        "database": [
+          280,
+          172,
+          33
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          281,
+          173,
+          31
+        ],
+        "database": [
+          281,
+          173,
+          31
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          280,
+          172,
+          32
+        ],
+        "database": [
+          280,
+          172,
+          32
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 0.8871704930006672,
+    "k6_exit_code": 0,
+    "fault_timeline": [],
+    "passed": true
+  },
+  {
+    "stage": {
+      "name": "mixed-5000",
+      "redirects": 5000,
+      "creates": 100,
+      "reports": 10,
+      "seconds": 30
+    },
+    "measured_seconds": 30.01674238,
+    "completed_duration": true,
+    "http_requests": 155281,
+    "http_error_rate": 0,
+    "dropped_iterations": 1023,
+    "dropped_iterations_by_scenario": {
+      "redirect": 1023,
+      "create": 0,
+      "report": 0
+    },
+    "incorrect_responses": 0,
+    "redirects": 148978,
+    "redirects_per_second": 4963.163494359177,
+    "redirects_latency_ms": {
+      "avg": 3.7733862305709707,
+      "med": 0.4309515,
+      "p(95)": 20.811490849999995,
+      "p(99)": 52.64739233000038,
+      "max": 200.156183
+    },
+    "creates": 3001,
+    "creates_per_second": 99.97753793561392,
+    "creates_latency_ms": {
+      "avg": 14.318468538153901,
+      "med": 5.444187,
+      "p(95)": 62.639423,
+      "p(99)": 129.702193,
+      "max": 251.670607
+    },
+    "reports": 301,
+    "reports_per_second": 10.027737060519756,
+    "reports_latency_ms": {
+      "avg": 34.22459423920263,
+      "med": 18.674613,
+      "p(95)": 98.246107,
+      "p(99)": 251.937871,
+      "max": 370.59226
+    },
+    "humans": 134080,
+    "bots": 14898,
+    "stored_events_human_bot": [
+      148978,
+      134080,
+      14898
+    ],
+    "analytics_match": true,
+    "counter_delta": 134080,
+    "created_rows_unique_slugs_targets": [
+      3001,
+      3001,
+      3001
+    ],
+    "creation_match": true,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          414,
+          172,
+          48
+        ],
+        "database": [
+          414,
+          172,
+          48
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          416,
+          173,
+          45
+        ],
+        "database": [
+          416,
+          173,
+          45
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          413,
+          172,
+          47
+        ],
+        "database": [
+          413,
+          172,
+          47
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 0.8795402570012811,
+    "k6_exit_code": 99,
+    "fault_timeline": [],
+    "passed": false
+  },
+  {
+    "stage": {
+      "name": "hot-5000",
+      "redirects": 5000,
+      "creates": 0,
+      "reports": 0,
+      "seconds": 30,
+      "shape": "hot"
+    },
+    "measured_seconds": 30.003520667,
+    "completed_duration": true,
+    "http_requests": 150012,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_iterations_by_scenario": {
+      "redirect": 0
+    },
+    "incorrect_responses": 0,
+    "redirects": 150012,
+    "redirects_per_second": 4999.813244083513,
+    "redirects_latency_ms": {
+      "avg": 0.9721362624256802,
+      "med": 0.23461100000000001,
+      "p(95)": 3.533099549999993,
+      "p(99)": 14.240482719999815,
+      "max": 87.548035
+    },
+    "creates": 0,
+    "creates_per_second": 0.0,
+    "creates_latency_ms": {},
+    "reports": 0,
+    "reports_per_second": 0.0,
+    "reports_latency_ms": {},
+    "humans": 135010,
+    "bots": 15002,
+    "stored_events_human_bot": [
+      150012,
+      135010,
+      15002
+    ],
+    "analytics_match": true,
+    "counter_delta": 135010,
+    "created_rows_unique_slugs_targets": [
+      0,
+      0,
+      0
+    ],
+    "creation_match": true,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          135424,
+          188,
+          15050
+        ],
+        "database": [
+          135424,
+          188,
+          15050
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          416,
+          173,
+          45
+        ],
+        "database": [
+          416,
+          173,
+          45
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          413,
+          172,
+          47
+        ],
+        "database": [
+          413,
+          172,
+          47
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 1.8190857930003403,
+    "k6_exit_code": 0,
+    "fault_timeline": [],
+    "passed": true
+  },
+  {
+    "stage": {
+      "name": "create-100",
+      "redirects": 0,
+      "creates": 100,
+      "reports": 0,
+      "seconds": 30
+    },
+    "measured_seconds": 30.005668175,
+    "completed_duration": true,
+    "http_requests": 6002,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_iterations_by_scenario": {
+      "create": 0
+    },
+    "incorrect_responses": 0,
+    "redirects": 0,
+    "redirects_per_second": 0.0,
+    "redirects_latency_ms": {},
+    "creates": 3001,
+    "creates_per_second": 100.01443668901068,
+    "creates_latency_ms": {
+      "avg": 3.3738025668110647,
+      "med": 3.140391,
+      "p(95)": 4.864616,
+      "p(99)": 7.083572,
+      "max": 16.864003
+    },
+    "reports": 0,
+    "reports_per_second": 0.0,
+    "reports_latency_ms": {},
+    "humans": 0,
+    "bots": 0,
+    "stored_events_human_bot": [
+      0,
+      0,
+      0
+    ],
+    "analytics_match": true,
+    "counter_delta": 0,
+    "created_rows_unique_slugs_targets": [
+      3001,
+      3001,
+      3001
+    ],
+    "creation_match": true,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          135424,
+          188,
+          15050
+        ],
+        "database": [
+          135424,
+          188,
+          15050
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          416,
+          173,
+          45
+        ],
+        "database": [
+          416,
+          173,
+          45
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          413,
+          172,
+          47
+        ],
+        "database": [
+          413,
+          172,
+          47
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 1.8510667930004274,
+    "k6_exit_code": 0,
+    "fault_timeline": [],
+    "passed": true
+  },
+  {
+    "stage": {
+      "name": "create-500",
+      "redirects": 0,
+      "creates": 500,
+      "reports": 0,
+      "seconds": 30
+    },
+    "measured_seconds": 30.010759262,
+    "completed_duration": true,
+    "http_requests": 30002,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_iterations_by_scenario": {
+      "create": 0
+    },
+    "incorrect_responses": 0,
+    "redirects": 0,
+    "redirects_per_second": 0.0,
+    "redirects_latency_ms": {},
+    "creates": 15001,
+    "creates_per_second": 499.85406463855963,
+    "creates_latency_ms": {
+      "med": 3.632515,
+      "p(95)": 20.076303,
+      "p(99)": 195.535505,
+      "max": 268.452222,
+      "avg": 10.611114585160962
+    },
+    "reports": 0,
+    "reports_per_second": 0.0,
+    "reports_latency_ms": {},
+    "humans": 0,
+    "bots": 0,
+    "stored_events_human_bot": [
+      0,
+      0,
+      0
+    ],
+    "analytics_match": true,
+    "counter_delta": 0,
+    "created_rows_unique_slugs_targets": [
+      15001,
+      15001,
+      15001
+    ],
+    "creation_match": true,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          135424,
+          188,
+          15050
+        ],
+        "database": [
+          135424,
+          188,
+          15050
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          416,
+          173,
+          45
+        ],
+        "database": [
+          416,
+          173,
+          45
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          413,
+          172,
+          47
+        ],
+        "database": [
+          413,
+          172,
+          47
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 2.201654458998746,
+    "k6_exit_code": 0,
+    "fault_timeline": [],
+    "passed": true
+  },
+  {
+    "stage": {
+      "name": "create-1000",
+      "redirects": 0,
+      "creates": 1000,
+      "reports": 0,
+      "seconds": 30
+    },
+    "measured_seconds": 30.00236422,
+    "completed_duration": true,
+    "http_requests": 60000,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_iterations_by_scenario": {
+      "create": 0
+    },
+    "incorrect_responses": 0,
+    "redirects": 0,
+    "redirects_per_second": 0.0,
+    "redirects_latency_ms": {},
+    "creates": 30000,
+    "creates_per_second": 999.921198876773,
+    "creates_latency_ms": {
+      "avg": 8.358955008766658,
+      "med": 4.0421665,
+      "p(95)": 28.5649274,
+      "p(99)": 50.87787360999993,
+      "max": 154.09862
+    },
+    "reports": 0,
+    "reports_per_second": 0.0,
+    "reports_latency_ms": {},
+    "humans": 0,
+    "bots": 0,
+    "stored_events_human_bot": [
+      0,
+      0,
+      0
+    ],
+    "analytics_match": true,
+    "counter_delta": 0,
+    "created_rows_unique_slugs_targets": [
+      30000,
+      30000,
+      30000
+    ],
+    "creation_match": true,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          135424,
+          188,
+          15050
+        ],
+        "database": [
+          135424,
+          188,
+          15050
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          416,
+          173,
+          45
+        ],
+        "database": [
+          416,
+          173,
+          45
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          413,
+          172,
+          47
+        ],
+        "database": [
+          413,
+          172,
+          47
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 1.763258450999274,
+    "k6_exit_code": 0,
+    "fault_timeline": [],
+    "passed": true
+  },
+  {
+    "stage": {
+      "name": "create-3472",
+      "redirects": 0,
+      "creates": 3472,
+      "reports": 0,
+      "seconds": 30
+    },
+    "measured_seconds": 30.204867622000002,
+    "completed_duration": true,
+    "http_requests": 83872,
+    "http_error_rate": 0,
+    "dropped_iterations": 62222,
+    "dropped_iterations_by_scenario": {
+      "create": 62222
+    },
+    "incorrect_responses": 0,
+    "redirects": 0,
+    "redirects_per_second": 0.0,
+    "redirects_latency_ms": {},
+    "creates": 41936,
+    "creates_per_second": 1388.3854921931695,
+    "creates_latency_ms": {
+      "avg": 281.2784886131463,
+      "med": 251.5478235,
+      "p(95)": 577.30314375,
+      "p(99)": 772.6282871500014,
+      "max": 1577.173293
+    },
+    "reports": 0,
+    "reports_per_second": 0.0,
+    "reports_latency_ms": {},
+    "humans": 0,
+    "bots": 0,
+    "stored_events_human_bot": [
+      0,
+      0,
+      0
+    ],
+    "analytics_match": true,
+    "counter_delta": 0,
+    "created_rows_unique_slugs_targets": [
+      41936,
+      41936,
+      41936
+    ],
+    "creation_match": true,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          135424,
+          188,
+          15050
+        ],
+        "database": [
+          135424,
+          188,
+          15050
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          416,
+          173,
+          45
+        ],
+        "database": [
+          416,
+          173,
+          45
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          413,
+          172,
+          47
+        ],
+        "database": [
+          413,
+          172,
+          47
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 1.7304621229995973,
+    "k6_exit_code": 99,
+    "fault_timeline": [],
+    "passed": false
+  },
+  {
+    "stage": {
+      "name": "article-average",
+      "redirects": 34722,
+      "creates": 3472,
+      "reports": 50,
+      "seconds": 30,
+      "shape": "skewed"
+    },
+    "measured_seconds": 30.761793869,
+    "completed_duration": true,
+    "http_requests": 289750,
+    "http_error_rate": 0.0009801553062985331,
+    "dropped_iterations": 867271,
+    "dropped_iterations_by_scenario": {
+      "redirect": 771620,
+      "create": 94464,
+      "report": 1187
+    },
+    "incorrect_responses": 284,
+    "redirects": 270048,
+    "redirects_per_second": 8778.681800873099,
+    "redirects_latency_ms": {
+      "p(99)": 117.5027405799996,
+      "max": 3997.31991,
+      "avg": 33.826374306767434,
+      "med": 27.5789245,
+      "p(95)": 63.961556249999994
+    },
+    "creates": 9692,
+    "creates_per_second": 315.06615125482165,
+    "creates_latency_ms": {
+      "max": 5010.695471,
+      "avg": 1064.5048313307193,
+      "med": 888.203097,
+      "p(95)": 2602.4885879999997,
+      "p(99)": 3515.2077746399996
+    },
+    "reports": 61,
+    "reports_per_second": 1.9829792846207306,
+    "reports_latency_ms": {
+      "p(95)": 5081.790938,
+      "p(99)": 5126.15825768,
+      "max": 5208.974149,
+      "avg": 4754.673939051116,
+      "med": 5000.170248
+    },
+    "humans": 243043,
+    "bots": 27005,
+    "stored_events_human_bot": [
+      270048,
+      243043,
+      27005
+    ],
+    "analytics_match": true,
+    "counter_delta": 243043,
+    "created_rows_unique_slugs_targets": [
+      9693,
+      9693,
+      9693
+    ],
+    "creation_match": false,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          137615,
+          271,
+          15294
+        ],
+        "database": [
+          137615,
+          271,
+          15294
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          2364,
+          271,
+          261
+        ],
+        "database": [
+          2364,
+          271,
+          261
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          413,
+          172,
+          47
+        ],
+        "database": [
+          413,
+          172,
+          47
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 5.775504484001431,
+    "k6_exit_code": 99,
+    "fault_timeline": [],
+    "passed": false
+  },
+  {
+    "stage": {
+      "name": "postgres-outage",
+      "redirects": 500,
+      "creates": 0,
+      "reports": 0,
+      "seconds": 30,
+      "shape": "hot",
+      "db_outage_seconds": 6
+    },
+    "measured_seconds": 30.001042624999997,
+    "completed_duration": true,
+    "http_requests": 15001,
+    "http_error_rate": 0,
+    "dropped_iterations": 0,
+    "dropped_iterations_by_scenario": {
+      "redirect": 0
+    },
+    "incorrect_responses": 0,
+    "redirects": 15001,
+    "redirects_per_second": 500.01595569547317,
+    "redirects_latency_ms": {
+      "med": 0.251742,
+      "p(95)": 0.434484,
+      "p(99)": 0.863956,
+      "max": 5.938436,
+      "avg": 0.2826100927271518
+    },
+    "creates": 0,
+    "creates_per_second": 0.0,
+    "creates_latency_ms": {},
+    "reports": 0,
+    "reports_per_second": 0.0,
+    "reports_latency_ms": {},
+    "humans": 13501,
+    "bots": 1500,
+    "stored_events_human_bot": [
+      15001,
+      13501,
+      1500
+    ],
+    "analytics_match": true,
+    "counter_delta": 13501,
+    "created_rows_unique_slugs_targets": [
+      0,
+      0,
+      0
+    ],
+    "creation_match": true,
+    "stats_checks": [
+      {
+        "link_id": 1,
+        "status": 200,
+        "api": [
+          151116,
+          271,
+          16794
+        ],
+        "database": [
+          151116,
+          271,
+          16794
+        ],
+        "match": true
+      },
+      {
+        "link_id": 2,
+        "status": 200,
+        "api": [
+          2364,
+          271,
+          261
+        ],
+        "database": [
+          2364,
+          271,
+          261
+        ],
+        "match": true
+      },
+      {
+        "link_id": 1000,
+        "status": 200,
+        "api": [
+          413,
+          172,
+          47
+        ],
+        "database": [
+          413,
+          172,
+          47
+        ],
+        "match": true
+      }
+    ],
+    "settle_seconds": 1.8233643759995175,
+    "k6_exit_code": 0,
+    "fault_timeline": [
+      {
+        "event": "db stopped",
+        "at": "2026-09-29T17:42:29.668290+00:00"
+      },
+      {
+        "event": "db start requested",
+        "at": "2026-09-29T17:42:35.976166+00:00"
+      }
+    ],
+    "passed": true
+  }
+]

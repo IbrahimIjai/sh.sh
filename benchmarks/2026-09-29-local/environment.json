@@ -1,0 +1,106 @@
+{
+  "run": "local load benchmark, 2026-09-29",
+  "started_at": "2026-09-29T17:34:26.545541+00:00",
+  "commit": "b58d9faca6b0ba3d7c4fa208ee1193addbca70b8",
+  "uncommitted_changes": [
+    "M README.md",
+    "M cmd/api/main.go",
+    "M db/migrations/00008_click_events.sql",
+    "M db/queries/clicks.sql",
+    "M internal/clickstream/clickstream.go",
+    "M internal/db/generated/clicks.sql.go",
+    "M internal/db/generated/models.go",
+    "M internal/db/generated/querier.go",
+    "M internal/handler/admin.go",
+    "D internal/maintenance/maintenance.go",
+    "D internal/maintenance/maintenance_test.go",
+    "M internal/rediscache/rediscache.go",
+    "M internal/rediscache/rediscache_test.go",
+    "M internal/service/link.go",
+    "M internal/service/redirect.go",
+    "M scripts/load/README.md",
+    "M scripts/load/dashboards.js",
+    "M scripts/load/dashboards.py",
+    "M scripts/load/review_probes.py",
+    "D scripts/load/review_tests/maintenance.go.txt",
+    "?? internal/service/maintenance.go",
+    "?? internal/service/maintenance_test.go",
+    "?? internal/service/redirect_test.go",
+    "?? scripts/load/review_tests/service-maintenance.go.txt"
+  ],
+  "host": {
+    "os": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+    "logical_cpus": 8,
+    "cpu": "Intel(R) Core(TM) i7-8706G CPU @ 3.10GHz"
+  },
+  "scope": "Local Docker HTTP; no Traefik/TLS, remote network, email or Web Risk. Authenticated creates each followed by one preview read. Same host generator. No 20-year retention target.",
+  "thresholds": "Local redirect median<5ms/p99<50ms and report p95<500ms are proposal targets, not article-specified SLOs. Abort above 1% HTTP errors or 2s redirect p99 after 15s.",
+  "topology": {
+    "api_instances": 1,
+    "lru": true,
+    "redis": "redis://redis:6379/0",
+    "postgres_instances": 1,
+    "request_log": "all",
+    "click_queue": "redis"
+  },
+  "containers": [
+    {
+      "name": "sh-article-f330407c8a-api-1",
+      "image": "sh-article-f330407c8a-api",
+      "cpus": 2.0,
+      "memory_mib": 512,
+      "command": [
+        "/app/api"
+      ],
+      "env": {
+        "LINK_CACHE_SIZE": "100000",
+        "REQUEST_LOG": "all",
+        "REDIS_URL": "<redacted>",
+        "PORT": "8080",
+        "APP_ENV": "development",
+        "CLICK_QUEUE": "",
+        "LIMEN_SECRET": "<redacted>",
+        "DATABASE_URL": "<redacted>",
+        "ADMIN_TOKEN": "<redacted>",
+        "BASE_URL": "http://api:8080",
+        "EMAIL_PROVIDER": "resend"
+      }
+    },
+    {
+      "name": "sh-article-f330407c8a-db-1",
+      "image": "postgres:17-alpine",
+      "cpus": 2.0,
+      "memory_mib": 1024,
+      "command": [
+        "postgres"
+      ],
+      "env": {
+        "POSTGRES_DB": "benchmark",
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "<redacted>",
+        "PG_MAJOR": "17",
+        "PG_SHA256": "dd27f2b3c59e73ed14aa3324901242bf69a032a6347805f274e6260322d42979"
+      }
+    },
+    {
+      "name": "sh-article-f330407c8a-redis-1",
+      "image": "redis:7.2-alpine",
+      "cpus": 0.5,
+      "memory_mib": 256,
+      "command": [
+        "redis-server",
+        "--maxmemory",
+        "200mb",
+        "--maxmemory-policy",
+        "volatile-lru",
+        "--save",
+        "",
+        "--appendonly",
+        "yes",
+        "--appendfsync",
+        "everysec"
+      ],
+      "env": {}
+    }
+  ]
+}

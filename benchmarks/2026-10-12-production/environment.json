@@ -1,0 +1,30 @@
+{
+  "run": "production redirect benchmark, 2026-10-12",
+  "commit": "1afd3a1 (last server change; main was at db17d5a)",
+  "target": "https://shortened.cv/{slug}, one active link, 302 to https://example.com/?ref=smoke",
+  "path": "k6 -> public IP -> Traefik (TLS, Let's Encrypt) -> Go API -> in-process cache; every click recorded through the Redis stream into PostgreSQL",
+  "host": {
+    "provider": "Contabo VPS shared with two other applications, managed by Coolify",
+    "cpu": "AMD EPYC Processor (with IBPB), 4 vCPU, KVM",
+    "memory": "7.8 GiB",
+    "os": "Ubuntu 24.04.5 LTS"
+  },
+  "load_generator": {
+    "tool": "k6 v2.3.0",
+    "location": "same VPS, so it shared the 4 vCPUs with the services under test",
+    "connections": "keep-alive; each virtual user reuses its TLS connection",
+    "user_agent": "desktop Chrome string, so requests are recorded as human clicks"
+  },
+  "api": {
+    "instances": 1,
+    "click_queue": "redis",
+    "app_env": "development (production mode was not yet enabled; it changes cookie flags, not the redirect path)"
+  },
+  "runs": {
+    "run1-50-to-1000": "60 s per step at a constant arrival rate, no warm-up. Stops when errors exceed 1% or p95 exceeds 500 ms.",
+    "run2-1000-to-3000": "20 s ramp to the target rate, then 60 s held. Only the held window is measured (hold_* metrics) and checked against the same limits."
+  },
+  "measurement": {
+    "cpu": "vmstat and top sampled every 5 s; process CPU is a percentage of one vCPU"
+  }
+}

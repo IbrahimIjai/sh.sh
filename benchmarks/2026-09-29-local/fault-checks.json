@@ -1,0 +1,17 @@
+{
+  "liveness_during_db_outage": 200,
+  "readiness_during_db_outage": 503,
+  "uncached_during_db_outage": 503,
+  "api_crash": {
+    "redirects_acknowledged": 100,
+    "stored_events": 100,
+    "seconds_waited_after_restart": 60.6,
+    "click_queue": "redis",
+    "note": "Database stopped before requests; API killed before database recovery."
+  },
+  "graceful_shutdown": {
+    "redirects_acknowledged": 100,
+    "stored_events": 100
+  },
+  "api_start_to_ready_seconds": 0.8863001190002251
+}
