@@ -16,6 +16,16 @@ where, and on what device, without storing raw IPs.
 - Preview any link before visiting it: `shortened.cv/{slug}+`
 - Malware and phishing checks (Google Web Risk), and an admin takedown API
 
+## Performance
+
+| Where | Result |
+|---|---|
+| Production VPS (4 vCPU), through HTTPS and Traefik | 2,000 redirects/s for 60 s, 0 errors, p95 68 ms; the Go API used about half a vCPU |
+| One laptop, plain HTTP | 3,200 redirects/s with 100 creates/s and 10 reports/s for 60 s, p99 7.9 ms |
+
+Environment, raw results, and what each number does and does not show: [`benchmarks/`](benchmarks/).
+The story behind them: [Building shortened.cv](https://iamibrahim.xyz/articles/building-shortened-cv).
+
 ## Stack
 
 | | |
@@ -34,8 +44,10 @@ visitor ──▶ Traefik ─┬─ shortened.cv      ──▶ api :8080 ──
 ## Repository
 
 ```
-server/   Go API: redirects, /api/v1, /auth
-ui/       Nuxt web app
+server/       Go API: redirects, /api/v1, /auth
+ui/           Nuxt web app
+benchmarks/   Load test results and the scripts that produced them
+WRITEUP.md    Technical write-up: design, caching, click pipeline, load and failure tests
 ```
 
 ## Quick start
@@ -72,4 +84,6 @@ tests and the end-to-end script.
 ## Documentation
 
 - [`server/README.md`](server/README.md): API reference, configuration, analytics, caching
-- [`server/scripts/load/README.md`](server/scripts/load/README.md): load tests and benchmarks
+- [`WRITEUP.md`](WRITEUP.md): how it works and how it was tested
+- [`benchmarks/README.md`](benchmarks/README.md): results and environments
+- [`server/scripts/load/README.md`](server/scripts/load/README.md): the local load harness
