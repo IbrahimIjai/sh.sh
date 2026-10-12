@@ -1,5 +1,6 @@
 import http from 'k6/http';
 import { check } from 'k6';
+import exec from 'k6/execution';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
 const BASE = __ENV.BASE || 'https://shortened.cv';
@@ -37,15 +38,13 @@ export const options = {
   },
 };
 
-const started = Date.now();
-
 export default function () {
   const res = http.get(`${BASE}/${SLUG}`, {
     redirects: 0,
     headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/130.0 Safari/537.36 shortened-bench' },
   });
   const ok = check(res, { '302 to target': (r) => r.status === 302 && r.headers.Location === TARGET });
-  if (Date.now() - started >= WARMUP_S * 1000) {
+  if (Date.now() - exec.scenario.startTime >= WARMUP_S * 1000) {
     holdDuration.add(res.timings.duration);
     holdFailed.add(res.status === 0 || res.status >= 500);
     holdCorrect.add(ok);

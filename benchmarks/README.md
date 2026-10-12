@@ -20,6 +20,11 @@ applications. **Load generator:** k6 v2.3.0 on the same VPS. Details in
 
 Each step ramps to the target rate for 20 s, then holds it for 60 s. Only the held minute is measured.
 
+The script used for this run started its 20 s warm-up clock separately for each k6 virtual user, so
+users added mid-run had their first 20 s left out of the held-minute metrics. The figures below are
+therefore approximate. [`redirect-live.js`](2026-10-12-production/scripts/redirect-live.js) now times
+the warm-up from the scenario start.
+
 | Target | Delivered | Errors | p50 | p95 | p99 | Host CPU | API | Traefik | k6 |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | 1,000 r/s | 1,000 r/s | 0% | 2.1 ms | 13.8 ms | 39.6 ms | 71% | 0.4 vCPU | 0.7 vCPU | 0.7 vCPU |
