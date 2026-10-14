@@ -154,17 +154,20 @@ docker compose down -v         # stop and wipe the Postgres volume
 | `POST /api/v1/links` | optional | Shorten a URL. Signed in: you own it and may pick a `slug`. Anonymous: random slug, 20 links/hour per IP, response includes a one-time `claim_token`. |
 | `POST /api/v1/links/lookup` | none | `{"claim_tokens": [...]}` → the anonymous links behind those tokens (for the "recent links" list). |
 | `POST /api/v1/links/claim` | session | `{"claim_tokens": [...]}` → moves those anonymous links (and their clicks) into your account. Tokens stop working afterwards. |
-| `GET /api/v1/links` | session | Your links. |
+| `GET /api/v1/links` | session | Your links, each with the `previous_slugs` that still redirect to it. |
 | `GET /api/v1/links/:id/stats?days=30` | session | Clicks, unique visitors, bot clicks, a zero-filled daily series, and top sources, referrers, countries, cities, devices, browsers, operating systems, UTM sources and campaigns. |
-| `DELETE /api/v1/links/:id` | session | Soft-delete one of your links. |
+| `PATCH /api/v1/links/:id` | session | `{"slug": "..."}` → moves one of your links to a new custom slug. Old slugs keep redirecting and share its stats; 10 changes a day per user. |
+| `DELETE /api/v1/links/:id` | session | Soft-delete one of your links. Every slug it has had stops redirecting. |
 | `GET /{slug}` | none | 302 to the target. UTM tags on the short link are recorded and passed on to the target. |
 | `GET /{slug}+` | none | Preview page: shows where the link goes without redirecting. |
-| `POST /api/v1/admin/takedown` | admin token | `{"slugs": [...]}` and/or `{"target_host": "bad.example"}` (subdomains included) → deactivates the links and stops them redirecting on every instance. |
+| `POST /api/v1/admin/takedown` | admin token | `{"slugs": [...]}` and/or `{"target_host": "bad.example"}` (subdomains included) → deactivates the links and stops them redirecting on every instance. Any of a link's slugs, current or old, takes down the whole link. |
 
 Admin routes exist only when `ADMIN_TOKEN` is set (32+ characters) and need
 `Authorization: Bearer <token>`.
 
-Custom slugs are 3–64 letters, digits, `-` or `_`, and can't be a reserved word (`api`, `auth`, `health`, ...).
+Custom slugs are 3–128 letters, digits, `-` or `_`, and can't be a reserved word (`api`, `auth`, `health`, ...).
+A slug is never reused, even after its link is deleted or renamed, and custom slugs that differ only by
+case count as the same name.
 Links pointing at our own domain or at other URL shorteners are rejected.
 
 ### Anonymous links in the frontend

@@ -29,7 +29,9 @@ var errSlugsExhausted = errors.New("no free random slug found")
 
 // Custom slugs can't contain "/" or "+" (the redirect handler reads "/{slug}+" as a preview) and
 // can't shadow a route, or the link would be saved but never reachable.
-var customSlugPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{3,64}$`)
+var customSlugPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{3,128}$`)
+
+const invalidSlugMessage = "slug must be 3-128 letters, numbers, '-' or '_', and not a reserved word"
 
 var reservedSlugs = map[string]bool{
 	"api": true, "auth": true, "health": true, "admin": true, "login": true, "logout": true,
@@ -62,11 +64,11 @@ func randomSlugFrom(r io.Reader, length int) (string, error) {
 }
 
 // insertLink inserts the link under params.Slug, or under a random slug when it is empty.
-// CreateLink returns sql.ErrNoRows when the slug is taken.
 func (s *LinkService) insertLink(ctx context.Context, params db.CreateLinkParams) (db.Link, error) {
 	if params.Slug != "" {
+		params.Custom = true
 		link, err := s.queries.CreateLink(ctx, params)
-		if errors.Is(err, sql.ErrNoRows) {
+		if slugTaken(err) {
 			return db.Link{}, ErrSlugTaken
 		}
 		return link, err
@@ -79,11 +81,17 @@ func (s *LinkService) insertLink(ctx context.Context, params db.CreateLinkParams
 		}
 		params.Slug = slug
 		link, err := s.queries.CreateLink(ctx, params)
-		if !errors.Is(err, sql.ErrNoRows) {
+		if !slugTaken(err) {
 			return link, err
 		}
 	}
 	return db.Link{}, errSlugsExhausted
+}
+
+// slugTaken reports a write that lost its slug: no row when the conflict was expected, a unique
+// violation when another request claimed the slug at the same moment.
+func slugTaken(err error) bool {
+	return errors.Is(err, sql.ErrNoRows) || isUniqueViolation(err)
 }
 
 func newClaimToken() (string, error) {

@@ -13,6 +13,68 @@ import (
 	"github.com/lib/pq"
 )
 
+const changeLinkSlug = `-- name: ChangeLinkSlug :one
+WITH owned AS (
+	SELECT links.id, links.slug
+	FROM links
+	WHERE links.id = $2
+		AND links.user_id = $3::bigint
+		AND links.deleted_at IS NULL
+	FOR UPDATE
+),
+added AS (
+	INSERT INTO link_slugs (slug, link_id, custom)
+	SELECT $1::varchar, owned.id, TRUE
+	FROM owned
+	ON CONFLICT (slug) DO UPDATE SET replaced_at = link_slugs.replaced_at
+	WHERE link_slugs.link_id = EXCLUDED.link_id
+	RETURNING link_id
+),
+replaced AS (
+	INSERT INTO link_slugs (slug, link_id, replaced_at)
+	SELECT owned.slug, owned.id, CURRENT_TIMESTAMP
+	FROM owned
+	JOIN added ON added.link_id = owned.id
+	ON CONFLICT (slug) DO UPDATE SET replaced_at = EXCLUDED.replaced_at
+	WHERE link_slugs.link_id = EXCLUDED.link_id
+)
+UPDATE links
+SET slug = $1::varchar,
+	updated_at = CURRENT_TIMESTAMP
+FROM added
+WHERE links.id = added.link_id
+RETURNING links.id, links.user_id, links.slug, links.target_url, links.title, links.description, links.is_active, links.expires_at, links.created_at, links.updated_at, links.deleted_at, links.claim_token_hash, links.creator_hash
+`
+
+type ChangeLinkSlugParams struct {
+	Slug   string `json:"slug"`
+	ID     int64  `json:"id"`
+	UserID int64  `json:"user_id"`
+}
+
+// Returns no row when another link holds the slug. Changing back to one of the link's own old
+// slugs makes it current again.
+func (q *Queries) ChangeLinkSlug(ctx context.Context, arg ChangeLinkSlugParams) (Link, error) {
+	row := q.db.QueryRowContext(ctx, changeLinkSlug, arg.Slug, arg.ID, arg.UserID)
+	var i Link
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Slug,
+		&i.TargetUrl,
+		&i.Title,
+		&i.Description,
+		&i.IsActive,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.ClaimTokenHash,
+		&i.CreatorHash,
+	)
+	return i, err
+}
+
 const claimLinks = `-- name: ClaimLinks :many
 UPDATE links
 SET user_id = $1,
@@ -99,8 +161,35 @@ func (q *Queries) CountLinksByUser(ctx context.Context, userID sql.NullInt64) (i
 	return count, err
 }
 
+const countSlugChangesSince = `-- name: CountSlugChangesSince :one
+SELECT COUNT(*)
+FROM link_slugs s
+JOIN links l ON l.id = s.link_id
+WHERE l.user_id = $1::bigint
+	AND s.replaced_at >= $2::timestamptz
+`
+
+type CountSlugChangesSinceParams struct {
+	UserID int64     `json:"user_id"`
+	Since  time.Time `json:"since"`
+}
+
+func (q *Queries) CountSlugChangesSince(ctx context.Context, arg CountSlugChangesSinceParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countSlugChangesSince, arg.UserID, arg.Since)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createLink = `-- name: CreateLink :one
+WITH reserved AS (
+	INSERT INTO link_slugs (slug, link_id, custom)
+	VALUES ($8, nextval(pg_get_serial_sequence('links', 'id')), $9)
+	ON CONFLICT DO NOTHING
+	RETURNING slug, link_id
+)
 INSERT INTO links (
+	id,
 	user_id,
 	slug,
 	target_url,
@@ -109,35 +198,46 @@ INSERT INTO links (
 	expires_at,
 	claim_token_hash,
 	creator_hash
-) VALUES (
-	$1, $2, $3, $4, $5, $6, $7, $8
 )
-ON CONFLICT (slug) DO NOTHING
+SELECT
+	reserved.link_id,
+	$1::bigint,
+	reserved.slug,
+	$2::text,
+	$3::varchar,
+	$4::text,
+	$5::timestamptz,
+	$6::varchar,
+	$7::varchar
+FROM reserved
 RETURNING id, user_id, slug, target_url, title, description, is_active, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 `
 
 type CreateLinkParams struct {
 	UserID         sql.NullInt64  `json:"user_id"`
-	Slug           string         `json:"slug"`
 	TargetUrl      string         `json:"target_url"`
 	Title          sql.NullString `json:"title"`
 	Description    sql.NullString `json:"description"`
 	ExpiresAt      sql.NullTime   `json:"expires_at"`
 	ClaimTokenHash sql.NullString `json:"claim_token_hash"`
 	CreatorHash    sql.NullString `json:"creator_hash"`
+	Slug           string         `json:"slug"`
+	Custom         bool           `json:"custom"`
 }
 
-// Returns no row when the slug is taken. idx_links_slug covers soft-deleted rows too, so a slug is never reused.
+// Returns no row when the slug is taken: link_slugs keeps every slug ever used, deleted and
+// replaced ones included, so a slug is never reused.
 func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error) {
 	row := q.db.QueryRowContext(ctx, createLink,
 		arg.UserID,
-		arg.Slug,
 		arg.TargetUrl,
 		arg.Title,
 		arg.Description,
 		arg.ExpiresAt,
 		arg.ClaimTokenHash,
 		arg.CreatorHash,
+		arg.Slug,
+		arg.Custom,
 	)
 	var i Link
 	err := row.Scan(
@@ -162,24 +262,33 @@ const deactivateLinksBySlugs = `-- name: DeactivateLinksBySlugs :many
 UPDATE links
 SET is_active = FALSE,
 	updated_at = CURRENT_TIMESTAMP
-WHERE slug = ANY($1::text[])
-	AND is_active
-RETURNING slug
+WHERE is_active
+	AND (
+		slug = ANY($1::text[])
+		OR id IN (SELECT link_id FROM link_slugs WHERE link_slugs.slug = ANY($1::text[]))
+	)
+RETURNING id, slug
 `
 
-func (q *Queries) DeactivateLinksBySlugs(ctx context.Context, slugs []string) ([]string, error) {
+type DeactivateLinksBySlugsRow struct {
+	ID   int64  `json:"id"`
+	Slug string `json:"slug"`
+}
+
+// Any of a link's slugs, current or replaced, takes down the whole link.
+func (q *Queries) DeactivateLinksBySlugs(ctx context.Context, slugs []string) ([]DeactivateLinksBySlugsRow, error) {
 	rows, err := q.db.QueryContext(ctx, deactivateLinksBySlugs, pq.Array(slugs))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []DeactivateLinksBySlugsRow
 	for rows.Next() {
-		var slug string
-		if err := rows.Scan(&slug); err != nil {
+		var i DeactivateLinksBySlugsRow
+		if err := rows.Scan(&i.ID, &i.Slug); err != nil {
 			return nil, err
 		}
-		items = append(items, slug)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -205,23 +314,28 @@ SET is_active = FALSE,
 FROM matched
 WHERE links.id = matched.id
 	AND (matched.host = lower($1::text) OR matched.host LIKE '%.' || lower($1::text))
-RETURNING links.slug
+RETURNING links.id, links.slug
 `
 
+type DeactivateLinksByTargetHostRow struct {
+	ID   int64  `json:"id"`
+	Slug string `json:"slug"`
+}
+
 // Matches the host and its subdomains, ignoring any user info or port in the target URL.
-func (q *Queries) DeactivateLinksByTargetHost(ctx context.Context, host string) ([]string, error) {
+func (q *Queries) DeactivateLinksByTargetHost(ctx context.Context, host string) ([]DeactivateLinksByTargetHostRow, error) {
 	rows, err := q.db.QueryContext(ctx, deactivateLinksByTargetHost, host)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []DeactivateLinksByTargetHostRow
 	for rows.Next() {
-		var slug string
-		if err := rows.Scan(&slug); err != nil {
+		var i DeactivateLinksByTargetHostRow
+		if err := rows.Scan(&i.ID, &i.Slug); err != nil {
 			return nil, err
 		}
-		items = append(items, slug)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -263,12 +377,16 @@ func (q *Queries) GetLinkByID(ctx context.Context, id int64) (Link, error) {
 const getLinkBySlug = `-- name: GetLinkBySlug :one
 SELECT id, user_id, slug, target_url, title, description, is_active, expires_at, created_at, updated_at, deleted_at, claim_token_hash, creator_hash
 FROM links
-WHERE slug = $1
+WHERE id = COALESCE(
+		(SELECT l.id FROM links l WHERE l.slug = $1),
+		(SELECT s.link_id FROM link_slugs s WHERE s.slug = $1)
+	)
 	AND is_active = TRUE
 	AND deleted_at IS NULL
 	AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
 `
 
+// Current slugs are read from links directly; replaced ones through link_slugs.
 func (q *Queries) GetLinkBySlug(ctx context.Context, slug string) (Link, error) {
 	row := q.db.QueryRowContext(ctx, getLinkBySlug, slug)
 	var i Link
@@ -288,6 +406,35 @@ func (q *Queries) GetLinkBySlug(ctx context.Context, slug string) (Link, error) 
 		&i.CreatorHash,
 	)
 	return i, err
+}
+
+const listLinkSlugs = `-- name: ListLinkSlugs :many
+SELECT slug
+FROM link_slugs
+WHERE link_id = ANY($1::bigint[])
+`
+
+func (q *Queries) ListLinkSlugs(ctx context.Context, linkIds []int64) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listLinkSlugs, pq.Array(linkIds))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var slug string
+		if err := rows.Scan(&slug); err != nil {
+			return nil, err
+		}
+		items = append(items, slug)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listLinksByClaimTokens = `-- name: ListLinksByClaimTokens :many
@@ -374,6 +521,44 @@ func (q *Queries) ListLinksByUser(ctx context.Context, arg ListLinksByUserParams
 			&i.ClaimTokenHash,
 			&i.CreatorHash,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPreviousSlugs = `-- name: ListPreviousSlugs :many
+SELECT s.link_id, s.slug
+FROM link_slugs s
+JOIN links l ON l.id = s.link_id
+WHERE s.link_id = ANY($1::bigint[])
+	AND s.replaced_at IS NOT NULL
+	AND s.slug <> l.slug
+ORDER BY s.replaced_at DESC
+`
+
+type ListPreviousSlugsRow struct {
+	LinkID int64  `json:"link_id"`
+	Slug   string `json:"slug"`
+}
+
+func (q *Queries) ListPreviousSlugs(ctx context.Context, linkIds []int64) ([]ListPreviousSlugsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPreviousSlugs, pq.Array(linkIds))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPreviousSlugsRow
+	for rows.Next() {
+		var i ListPreviousSlugsRow
+		if err := rows.Scan(&i.LinkID, &i.Slug); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

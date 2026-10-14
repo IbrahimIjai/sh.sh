@@ -20,6 +20,7 @@ useSeoMeta({
 const route = useRoute()
 const me = useCurrentUser()
 const links = useAccountLinks()
+const changeSlug = useChangeSlug()
 const { copy, copied } = useClipboard({ copiedDuring: 2000, legacy: true })
 
 const id = computed(() => Number(route.params.id))
@@ -27,6 +28,13 @@ const days = ref(30)
 const stats = useLinkStats(id, days)
 
 const link = computed(() => links.data.value?.find(item => item.id === id.value))
+const prefix = computed(() => link.value ? shortLinkPrefix(link.value.short_url.slice(0, -link.value.slug.length)) : '')
+const previousLinks = computed(() => (link.value?.previous_slugs ?? []).map(slug => prefix.value + slug))
+
+const editing = ref(false)
+const newSlug = ref('')
+const slugError = ref('')
+const slugInput = useTemplateRef('slugInput')
 
 watch(() => me.data.value, (user) => {
   if (user === null) navigateTo('/login')
@@ -71,6 +79,50 @@ function share(entries: StatsEntry[], clicks: number) {
   return `${Math.max(2, (clicks / top) * 100)}%`
 }
 
+function startEditing() {
+  if (!link.value) return
+  newSlug.value = link.value.slug
+  slugError.value = ''
+  editing.value = true
+}
+
+function focusSlug(event: Event) {
+  event.preventDefault()
+  slugInput.value?.focus()
+  slugInput.value?.select()
+}
+
+function showSlugError(message: string) {
+  slugError.value = message
+  slugInput.value?.focus()
+}
+
+function saveSlug() {
+  if (!link.value || changeSlug.isPending.value) return
+  const slug = newSlug.value.trim()
+  if (slug === link.value.slug) {
+    editing.value = false
+    return
+  }
+  const problem = slugProblem(slug)
+  if (problem) return showSlugError(problem)
+
+  changeSlug.mutate({ id: link.value.id, slug }, {
+    onSuccess: () => {
+      editing.value = false
+      toast.success('Link renamed. Old links still work.')
+    },
+    onError: (err) => {
+      if (apiStatus(err) === 429) return showSlugError('You can change links 10 times a day. Try again tomorrow.')
+      showSlugError(slugRejection(err) || 'The link could not be renamed. Try again.')
+    }
+  })
+}
+
+watch(newSlug, () => {
+  slugError.value = ''
+})
+
 async function copyLink() {
   if (!link.value) return
   const ok = await copy(link.value.short_url).then(() => copied.value, () => false)
@@ -100,6 +152,7 @@ async function copyLink() {
         <h1
           v-else
           class="truncate text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl"
+          :title="link.short_url"
         >
           {{ displayUrl(link.short_url) }}
         </h1>
@@ -117,12 +170,27 @@ async function copyLink() {
         >
           {{ link.target_url }}
         </a>
+        <p
+          v-if="previousLinks.length"
+          class="mt-1 truncate text-[13px] text-dimmed"
+          :title="previousLinks.join(', ')"
+        >
+          Also works: {{ previousLinks.join(' · ') }}
+        </p>
       </div>
 
       <div
         v-if="link"
         class="flex shrink-0 gap-2"
       >
+        <UButton
+          variant="outline"
+          icon="i-lucide-pencil"
+          class="flex-1 justify-center sm:flex-none"
+          @click="startEditing"
+        >
+          Edit
+        </UButton>
         <UButton
           variant="outline"
           :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
@@ -275,5 +343,69 @@ async function copyLink() {
         </section>
       </div>
     </template>
+
+    <UModal
+      v-model:open="editing"
+      title="Rename link"
+      description="The current link keeps working and shares these stats."
+      :content="{ onOpenAutoFocus: focusSlug }"
+    >
+      <template #body>
+        <form
+          id="change-slug"
+          novalidate
+          @submit.prevent="saveSlug"
+        >
+          <label
+            for="new-slug"
+            class="text-[13px] font-medium text-toned"
+          >Short link</label>
+          <div class="mt-1.5 flex h-12 min-w-0 items-center rounded-lg border border-default bg-default ps-3 shadow-(--ds-shadow-xs) transition-[border-color,box-shadow] duration-150 has-[input:focus-visible]:border-accented has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-(--ds-ink)/8">
+            <span class="shrink-0 text-base text-muted">{{ prefix }}</span>
+            <input
+              id="new-slug"
+              ref="slugInput"
+              v-model="newSlug"
+              type="text"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              :maxlength="SLUG_MAX_LENGTH"
+              :readonly="changeSlug.isPending.value"
+              :aria-invalid="slugError ? 'true' : undefined"
+              aria-describedby="new-slug-note"
+              class="h-full min-w-0 flex-1 bg-transparent pe-3 text-base text-highlighted outline-none"
+            >
+          </div>
+          <p
+            id="new-slug-note"
+            aria-live="polite"
+            class="mt-2 text-[13px]"
+            :class="slugError ? 'text-error' : 'text-muted'"
+          >
+            {{ slugError || `Letters, numbers, - and _, up to ${SLUG_MAX_LENGTH} characters.` }}
+          </p>
+        </form>
+      </template>
+      <template #footer>
+        <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <UButton
+            variant="outline"
+            class="justify-center"
+            @click="editing = false"
+          >
+            Cancel
+          </UButton>
+          <UButton
+            type="submit"
+            form="change-slug"
+            class="justify-center"
+            :loading="changeSlug.isPending.value"
+          >
+            Save
+          </UButton>
+        </div>
+      </template>
+    </UModal>
   </section>
 </template>

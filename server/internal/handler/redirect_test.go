@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -112,6 +113,58 @@ func TestAdminTakedownStopsCachedRedirects(t *testing.T) {
 	empty := map[string][]string{"slugs": {}}
 	if w := s.do(t, 0, "POST", "/api/v1/admin/takedown", empty, map[string]string{"Authorization": "Bearer " + testAdminToken}); w.Code != http.StatusBadRequest {
 		t.Errorf("empty takedown: status = %d, want 400", w.Code)
+	}
+}
+
+func TestDeleteStopsEverySlugOfALink(t *testing.T) {
+	s := newTestServer(testOptions{cacheSize: 100})
+	created := decode[linkResponse](t, s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com"}, nil))
+	if w := s.do(t, 0, "GET", "/brand-new", nil, nil); w.Code != http.StatusNotFound {
+		t.Fatalf("before the change: status = %d, want 404", w.Code)
+	}
+
+	path := "/api/v1/links/" + strconv.FormatInt(created.ID, 10)
+	if w := s.do(t, 1, "PATCH", path, map[string]string{"slug": "brand-new"}, nil); w.Code != http.StatusOK {
+		t.Fatalf("change: status = %d, body = %s", w.Code, w.Body)
+	}
+	for _, slug := range []string{"brand-new", created.Slug} {
+		if w := s.do(t, 0, "GET", "/"+slug, nil, nil); w.Code != http.StatusFound {
+			t.Fatalf("GET /%s: status = %d, want 302 despite the cached miss", slug, w.Code)
+		}
+	}
+
+	if w := s.do(t, 1, "DELETE", path, nil, nil); w.Code != http.StatusNoContent {
+		t.Fatalf("delete: status = %d", w.Code)
+	}
+	for _, slug := range []string{"brand-new", created.Slug} {
+		if w := s.do(t, 0, "GET", "/"+slug, nil, nil); w.Code != http.StatusNotFound {
+			t.Errorf("GET /%s after delete: status = %d, want 404 even though it was cached", slug, w.Code)
+		}
+	}
+}
+
+func TestTakedownByOldSlugStopsTheLink(t *testing.T) {
+	s := newTestServer(testOptions{cacheSize: 100})
+	created := decode[linkResponse](t, s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://phish.example", "slug": "bad-link"}, nil))
+	s.do(t, 1, "PATCH", "/api/v1/links/"+strconv.FormatInt(created.ID, 10), map[string]string{"slug": "bad-link-2"}, nil)
+	if w := s.do(t, 0, "GET", "/bad-link-2", nil, nil); w.Code != http.StatusFound {
+		t.Fatalf("before takedown: status = %d, want 302", w.Code)
+	}
+
+	w := s.do(t, 0, "POST", "/api/v1/admin/takedown", map[string][]string{"slugs": {"bad-link"}}, map[string]string{"Authorization": "Bearer " + testAdminToken})
+	if w.Code != http.StatusOK {
+		t.Fatalf("takedown: status = %d, body = %s", w.Code, w.Body)
+	}
+	deactivated := decode[struct {
+		Deactivated []string `json:"deactivated"`
+	}](t, w).Deactivated
+	if !slices.Equal(deactivated, []string{"bad-link-2", "bad-link"}) {
+		t.Errorf("deactivated = %v, want the current and the old slug", deactivated)
+	}
+	for _, slug := range []string{"bad-link", "bad-link-2"} {
+		if w := s.do(t, 0, "GET", "/"+slug, nil, nil); w.Code != http.StatusNotFound {
+			t.Errorf("GET /%s after takedown: status = %d, want 404", slug, w.Code)
+		}
 	}
 }
 

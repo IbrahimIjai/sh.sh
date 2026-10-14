@@ -57,8 +57,8 @@ func TestCORSPreflightFromApp(t *testing.T) {
 			t.Errorf("%s = %q, want %q", header, got, want)
 		}
 	}
-	if !strings.Contains(w.Header().Get("Access-Control-Allow-Methods"), "POST") {
-		t.Errorf("Access-Control-Allow-Methods = %q, want POST allowed", w.Header().Get("Access-Control-Allow-Methods"))
+	if methods := w.Header().Get("Access-Control-Allow-Methods"); !strings.Contains(methods, "POST") || !strings.Contains(methods, "PATCH") {
+		t.Errorf("Access-Control-Allow-Methods = %q, want POST and PATCH allowed", methods)
 	}
 }
 

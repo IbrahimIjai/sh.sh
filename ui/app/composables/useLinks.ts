@@ -10,6 +10,7 @@ export interface AccountLink {
   is_active: boolean
   click_count: number
   created_at: string
+  previous_slugs?: string[]
 }
 
 export interface StatsEntry {
@@ -46,6 +47,20 @@ export function useLinkStats(id: MaybeRefOrGetter<number>, days: MaybeRefOrGette
     queryFn: () => api<LinkStats>(`/api/v1/links/${toValue(id)}/stats`, { query: { days: toValue(days) } }),
     enabled: computed(() => Boolean(user.value) && Number.isInteger(toValue(id))),
     placeholderData: previous => previous
+  })
+}
+
+export function useChangeSlug() {
+  const api = useApi()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, slug }: { id: number, slug: string }) => api<AccountLink>(`/api/v1/links/${id}`, {
+      method: 'PATCH',
+      body: { slug }
+    }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<AccountLink[]>(ACCOUNT_LINKS, links => links?.map(link => link.id === updated.id ? updated : link))
+    }
   })
 }
 

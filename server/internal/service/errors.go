@@ -13,6 +13,8 @@ var (
 	ErrUnsafeURL      = errors.New("target_url is flagged as unsafe")
 	ErrSlugTaken      = errors.New("slug already exists")
 	ErrDomainTaken    = errors.New("domain already exists")
+
+	ErrTooManySlugChanges = errors.New("too many slug changes today; try again tomorrow")
 )
 
 // InputError is a validation failure whose message is safe to show the client.

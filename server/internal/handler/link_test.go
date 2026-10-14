@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"net/http/httptest"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -119,10 +121,118 @@ func TestCreateSignedInCustomSlug(t *testing.T) {
 		t.Errorf("taken slug: status = %d, want 409", w.Code)
 	}
 
-	for _, slug := range []string{"api", "Health", "a/b", "ab", "with+plus", strings.Repeat("x", 65)} {
+	for _, slug := range []string{"api", "Health", "a/b", "ab", "with+plus", strings.Repeat("x", 129)} {
 		if w := s.do(t, 5, "POST", "/api/v1/links", map[string]string{"target_url": "https://go.dev", "slug": slug}, nil); w.Code != http.StatusBadRequest {
 			t.Errorf("slug %q: status = %d, want 400", slug, w.Code)
 		}
+	}
+	if w := s.do(t, 5, "POST", "/api/v1/links", map[string]string{"target_url": "https://go.dev", "slug": strings.Repeat("x", 128)}, nil); w.Code != http.StatusCreated {
+		t.Errorf("128-character slug: status = %d, want 201", w.Code)
+	}
+	if w := s.do(t, 6, "POST", "/api/v1/links", map[string]string{"target_url": "https://go.dev", "slug": "Go-Docs"}, nil); w.Code != http.StatusConflict {
+		t.Errorf("look-alike of a custom slug: status = %d, want 409", w.Code)
+	}
+}
+
+func TestChangeSlug(t *testing.T) {
+	s := newTestServer(testOptions{})
+	created := decode[linkResponse](t, s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com/contacts"}, nil))
+	path := "/api/v1/links/" + strconv.FormatInt(created.ID, 10)
+	change := func(userID int64, slug string) *httptest.ResponseRecorder {
+		return s.do(t, userID, "PATCH", path, map[string]string{"slug": slug}, nil)
+	}
+
+	w := change(1, "eglobaltech_contacts")
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", w.Code, w.Body)
+	}
+	changed := decode[linkResponse](t, w)
+	if changed.Slug != "eglobaltech_contacts" || changed.ShortURL != testBaseURL+"/eglobaltech_contacts" {
+		t.Errorf("slug = %q, short_url = %q", changed.Slug, changed.ShortURL)
+	}
+	if !slices.Equal(changed.PreviousSlugs, []string{created.Slug}) {
+		t.Errorf("previous_slugs = %v, want [%s]", changed.PreviousSlugs, created.Slug)
+	}
+
+	for _, slug := range []string{"eglobaltech_contacts", created.Slug} {
+		w := s.do(t, 0, "GET", "/"+slug, nil, nil)
+		if w.Code != http.StatusFound || w.Header().Get("Location") != "https://example.com/contacts" {
+			t.Errorf("GET /%s: status = %d, location = %q", slug, w.Code, w.Header().Get("Location"))
+		}
+	}
+	for _, click := range s.clicks.clicks {
+		if click.LinkID != created.ID {
+			t.Errorf("click recorded for link %d, want %d: old and new slugs share one link's stats", click.LinkID, created.ID)
+		}
+	}
+
+	listed := decode[[]linkResponse](t, s.do(t, 1, "GET", "/api/v1/links", nil, nil))
+	if len(listed) != 1 || listed[0].Slug != "eglobaltech_contacts" || !slices.Equal(listed[0].PreviousSlugs, []string{created.Slug}) {
+		t.Errorf("list = %+v", listed)
+	}
+
+	if w := change(2, "someone-else"); w.Code != http.StatusNotFound {
+		t.Errorf("another user's link: status = %d, want 404", w.Code)
+	}
+	if w := change(0, "anonymous"); w.Code != http.StatusUnauthorized {
+		t.Errorf("signed out: status = %d, want 401", w.Code)
+	}
+	anonymous := decode[linkResponse](t, s.do(t, 0, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com"}, nil))
+	if w := s.do(t, 1, "PATCH", "/api/v1/links/"+strconv.FormatInt(anonymous.ID, 10), map[string]string{"slug": "not-mine"}, nil); w.Code != http.StatusNotFound {
+		t.Errorf("unclaimed anonymous link: status = %d, want 404", w.Code)
+	}
+
+	for _, slug := range []string{"ab", "api", "a/b", "with+plus", strings.Repeat("x", 129)} {
+		if w := change(1, slug); w.Code != http.StatusBadRequest {
+			t.Errorf("slug %q: status = %d, want 400", slug, w.Code)
+		}
+	}
+	if w := s.do(t, 1, "PATCH", path, map[string]string{}, nil); w.Code != http.StatusBadRequest {
+		t.Errorf("missing slug: status = %d, want 400", w.Code)
+	}
+
+	s.do(t, 2, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.org", "slug": "taken-name"}, nil)
+	for _, slug := range []string{"taken-name", "Taken-Name"} {
+		if w := change(1, slug); w.Code != http.StatusConflict {
+			t.Errorf("slug %q held by another link: status = %d, want 409", slug, w.Code)
+		}
+	}
+
+	w = change(1, created.Slug)
+	if w.Code != http.StatusOK {
+		t.Fatalf("back to the old slug: status = %d, body = %s", w.Code, w.Body)
+	}
+	if back := decode[linkResponse](t, w); back.Slug != created.Slug || !slices.Equal(back.PreviousSlugs, []string{"eglobaltech_contacts"}) {
+		t.Errorf("slug = %q, previous_slugs = %v", back.Slug, back.PreviousSlugs)
+	}
+	if w := s.do(t, 3, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.net", "slug": "eglobaltech_contacts"}, nil); w.Code != http.StatusConflict {
+		t.Errorf("reusing a replaced slug: status = %d, want 409", w.Code)
+	}
+	if w := s.do(t, 0, "GET", "/eglobaltech_contacts", nil, nil); w.Code != http.StatusFound {
+		t.Errorf("replaced slug after changing back: status = %d, want 302", w.Code)
+	}
+}
+
+func TestChangeSlugDailyLimit(t *testing.T) {
+	s := newTestServer(testOptions{})
+	created := decode[linkResponse](t, s.do(t, 1, "POST", "/api/v1/links", map[string]string{"target_url": "https://example.com"}, nil))
+	path := "/api/v1/links/" + strconv.FormatInt(created.ID, 10)
+
+	for i := range 10 {
+		if w := s.do(t, 1, "PATCH", path, map[string]string{"slug": "name-" + strconv.Itoa(i)}, nil); w.Code != http.StatusOK {
+			t.Fatalf("change %d: status = %d, body = %s", i, w.Code, w.Body)
+		}
+	}
+	if w := s.do(t, 1, "PATCH", path, map[string]string{"slug": "name-9"}, nil); w.Code != http.StatusOK {
+		t.Errorf("keeping the current slug: status = %d, want 200", w.Code)
+	}
+	if w := s.do(t, 1, "PATCH", path, map[string]string{"slug": "one-too-many"}, nil); w.Code != http.StatusTooManyRequests {
+		t.Errorf("11th change: status = %d, want 429", w.Code)
+	}
+
+	s.now = s.now.Add(25 * time.Hour)
+	if w := s.do(t, 1, "PATCH", path, map[string]string{"slug": "next-day"}, nil); w.Code != http.StatusOK {
+		t.Errorf("a day later: status = %d, want 200", w.Code)
 	}
 }
 

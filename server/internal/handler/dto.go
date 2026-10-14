@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"time"
 
-	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 	"github.com/ibrahimijai/sh.sh/internal/service"
 )
 
@@ -13,6 +12,10 @@ type createLinkRequest struct {
 	Slug        string `json:"slug"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
+}
+
+type changeSlugRequest struct {
+	Slug string `json:"slug" binding:"required"`
 }
 
 type claimTokensRequest struct {
@@ -37,30 +40,38 @@ type linkResponse struct {
 	ExpiresAt   *time.Time `json:"expires_at"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+	// PreviousSlugs still redirect to this link, newest first.
+	PreviousSlugs []string `json:"previous_slugs"`
 	// ClaimToken is set only in the response that creates an anonymous link.
 	ClaimToken string `json:"claim_token,omitempty"`
 }
 
-func newLinkResponse(baseURL string, link db.Link, clicks int64) linkResponse {
+func newLinkResponse(baseURL string, summary service.LinkSummary) linkResponse {
+	link := summary.Link
+	previous := summary.PreviousSlugs
+	if previous == nil {
+		previous = []string{}
+	}
 	return linkResponse{
-		ID:          link.ID,
-		Slug:        link.Slug,
-		ShortURL:    shortURL(baseURL, link.Slug),
-		TargetURL:   link.TargetUrl,
-		Title:       stringPtr(link.Title),
-		Description: stringPtr(link.Description),
-		IsActive:    link.IsActive,
-		ClickCount:  clicks,
-		ExpiresAt:   timePtr(link.ExpiresAt),
-		CreatedAt:   link.CreatedAt,
-		UpdatedAt:   link.UpdatedAt,
+		ID:            link.ID,
+		Slug:          link.Slug,
+		ShortURL:      shortURL(baseURL, link.Slug),
+		TargetURL:     link.TargetUrl,
+		Title:         stringPtr(link.Title),
+		Description:   stringPtr(link.Description),
+		IsActive:      link.IsActive,
+		ClickCount:    summary.Clicks,
+		ExpiresAt:     timePtr(link.ExpiresAt),
+		CreatedAt:     link.CreatedAt,
+		UpdatedAt:     link.UpdatedAt,
+		PreviousSlugs: previous,
 	}
 }
 
 func newLinkResponses(baseURL string, links []service.LinkSummary) []linkResponse {
 	responses := make([]linkResponse, 0, len(links))
 	for _, summary := range links {
-		responses = append(responses, newLinkResponse(baseURL, summary.Link, summary.Clicks))
+		responses = append(responses, newLinkResponse(baseURL, summary))
 	}
 	return responses
 }

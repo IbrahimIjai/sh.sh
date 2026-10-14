@@ -114,6 +114,14 @@ type LinkCounter struct {
 	HumanClicks int64 `json:"human_clicks"`
 }
 
+type LinkSlug struct {
+	Slug       string       `json:"slug"`
+	LinkID     int64        `json:"link_id"`
+	Custom     bool         `json:"custom"`
+	CreatedAt  time.Time    `json:"created_at"`
+	ReplacedAt sql.NullTime `json:"replaced_at"`
+}
+
 type RateLimit struct {
 	ID            int64  `json:"id"`
 	Key           string `json:"key"`

@@ -11,23 +11,30 @@ import (
 )
 
 type Querier interface {
+	// Returns no row when another link holds the slug. Changing back to one of the link's own old
+	// slugs makes it current again.
+	ChangeLinkSlug(ctx context.Context, arg ChangeLinkSlugParams) (Link, error)
 	ClaimLinks(ctx context.Context, arg ClaimLinksParams) ([]Link, error)
 	// Days before the raw retention cutoff can't be rolled up again: their raw clicks are gone.
 	ClearStaleRollupDays(ctx context.Context, before time.Time) error
 	CountLinksByCreatorSince(ctx context.Context, arg CountLinksByCreatorSinceParams) (int64, error)
 	CountLinksByUser(ctx context.Context, userID sql.NullInt64) (int64, error)
+	CountSlugChangesSince(ctx context.Context, arg CountSlugChangesSinceParams) (int64, error)
 	CreateDomain(ctx context.Context, arg CreateDomainParams) (Domain, error)
-	// Returns no row when the slug is taken. idx_links_slug covers soft-deleted rows too, so a slug is never reused.
+	// Returns no row when the slug is taken: link_slugs keeps every slug ever used, deleted and
+	// replaced ones included, so a slug is never reused.
 	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
-	DeactivateLinksBySlugs(ctx context.Context, slugs []string) ([]string, error)
+	// Any of a link's slugs, current or replaced, takes down the whole link.
+	DeactivateLinksBySlugs(ctx context.Context, slugs []string) ([]DeactivateLinksBySlugsRow, error)
 	// Matches the host and its subdomains, ignoring any user info or port in the target URL.
-	DeactivateLinksByTargetHost(ctx context.Context, host string) ([]string, error)
+	DeactivateLinksByTargetHost(ctx context.Context, host string) ([]DeactivateLinksByTargetHostRow, error)
 	DeleteRollupDaily(ctx context.Context, day time.Time) error
 	DeleteRollupDimensions(ctx context.Context, day time.Time) error
 	// visitor_hash rotates daily, so distinct hashes over a range add up the daily unique visitors.
 	GetClickTotalsByLink(ctx context.Context, arg GetClickTotalsByLinkParams) (GetClickTotalsByLinkRow, error)
 	GetDomainByHost(ctx context.Context, host string) (Domain, error)
 	GetLinkByID(ctx context.Context, id int64) (Link, error)
+	// Current slugs are read from links directly; replaced ones through link_slugs.
 	GetLinkBySlug(ctx context.Context, slug string) (Link, error)
 	GetRollupDay(ctx context.Context, day time.Time) (time.Time, error)
 	GetRollupTotalsByLink(ctx context.Context, arg GetRollupTotalsByLinkParams) (GetRollupTotalsByLinkRow, error)
@@ -39,8 +46,10 @@ type Querier interface {
 	ListClickDimensionsByLink(ctx context.Context, arg ListClickDimensionsByLinkParams) ([]ListClickDimensionsByLinkRow, error)
 	ListDailyClicksByLink(ctx context.Context, arg ListDailyClicksByLinkParams) ([]ListDailyClicksByLinkRow, error)
 	ListDomainsByUser(ctx context.Context, userID int64) ([]Domain, error)
+	ListLinkSlugs(ctx context.Context, linkIds []int64) ([]string, error)
 	ListLinksByClaimTokens(ctx context.Context, claimTokenHashes []string) ([]Link, error)
 	ListLinksByUser(ctx context.Context, arg ListLinksByUserParams) ([]Link, error)
+	ListPreviousSlugs(ctx context.Context, linkIds []int64) ([]ListPreviousSlugsRow, error)
 	ListRolledDays(ctx context.Context, arg ListRolledDaysParams) ([]time.Time, error)
 	ListRollupDailyByLink(ctx context.Context, arg ListRollupDailyByLinkParams) ([]ListRollupDailyByLinkRow, error)
 	ListRollupDimensionsByLink(ctx context.Context, arg ListRollupDimensionsByLinkParams) ([]ListRollupDimensionsByLinkRow, error)

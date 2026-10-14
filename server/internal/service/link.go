@@ -17,6 +17,7 @@ const (
 	maxTargetURLLength    = 2048
 	anonymousLinksPerHour = 20
 	userLinksPageSize     = 50
+	slugChangesPerDay     = 10
 )
 
 // Pointing at another shortener hides the real destination, which is how phishing links slip
@@ -68,10 +69,11 @@ type LinkService struct {
 	newSlug     func() (string, error)
 }
 
-// LinkSummary is a link with its human click count.
+// LinkSummary is a link with its human click count and the slugs it had before, newest first.
 type LinkSummary struct {
-	Link   db.Link
-	Clicks int64
+	Link          db.Link
+	Clicks        int64
+	PreviousSlugs []string
 }
 
 func NewLinkService(queries db.Querier, cfg LinkConfig) *LinkService {
@@ -123,7 +125,7 @@ func (s *LinkService) Create(ctx context.Context, in CreateLinkInput) (CreatedLi
 		return CreatedLink{}, ErrSignInRequired
 	}
 	if in.Slug != "" && !validSlug(in.Slug) {
-		return CreatedLink{}, &InputError{Message: "slug must be 3-64 letters, numbers, '-' or '_', and not a reserved word"}
+		return CreatedLink{}, &InputError{Message: invalidSlugMessage}
 	}
 
 	var creatorHash string
@@ -209,11 +211,54 @@ func (s *LinkService) Delete(ctx context.Context, userID, id int64) error {
 	if err != nil {
 		return err
 	}
+	slugs, err := s.allSlugs(ctx, []int64{id}, []string{link.Slug})
+	if err != nil {
+		return err
+	}
 	if err := s.queries.SoftDeleteLink(ctx, id); err != nil {
 		return err
 	}
-	s.redirects.Revoke(ctx, link.Slug)
+	for _, slug := range slugs {
+		s.redirects.Revoke(ctx, slug)
+	}
 	return nil
+}
+
+// ChangeSlug moves a link to a new custom slug. Its old slugs keep redirecting to it and count
+// toward the same stats, and no other link can ever take them.
+func (s *LinkService) ChangeSlug(ctx context.Context, userID, id int64, slug string) (LinkSummary, error) {
+	link, err := s.owned(ctx, userID, id)
+	if err != nil {
+		return LinkSummary{}, err
+	}
+	if !validSlug(slug) {
+		return LinkSummary{}, &InputError{Message: invalidSlugMessage}
+	}
+	if slug != link.Slug {
+		changes, err := s.queries.CountSlugChangesSince(ctx, db.CountSlugChangesSinceParams{
+			UserID: userID,
+			Since:  s.now().Add(-24 * time.Hour),
+		})
+		if err != nil {
+			return LinkSummary{}, err
+		}
+		if changes >= slugChangesPerDay {
+			return LinkSummary{}, ErrTooManySlugChanges
+		}
+		link, err = s.queries.ChangeLinkSlug(ctx, db.ChangeLinkSlugParams{ID: id, UserID: userID, Slug: slug})
+		if slugTaken(err) {
+			return LinkSummary{}, ErrSlugTaken
+		}
+		if err != nil {
+			return LinkSummary{}, err
+		}
+		s.redirects.Prime(ctx, link)
+	}
+	summaries, err := s.withClicks(ctx, []db.Link{link})
+	if err != nil {
+		return LinkSummary{}, err
+	}
+	return summaries[0], nil
 }
 
 // Lookup returns the anonymous links behind the claim tokens a browser has saved. No sign-in:
@@ -245,13 +290,16 @@ func (s *LinkService) Takedown(ctx context.Context, slugs []string, host string)
 	if len(slugs) == 0 && host == "" {
 		return nil, nil, &InputError{Message: "give slugs, target_host, or both"}
 	}
-	taken, pending = []string{}, []string{}
+	var ids []int64
+	var current []string
 	if len(slugs) > 0 {
 		bySlug, err := s.queries.DeactivateLinksBySlugs(ctx, slugs)
 		if err != nil {
 			return nil, nil, err
 		}
-		taken = append(taken, bySlug...)
+		for _, row := range bySlug {
+			ids, current = append(ids, row.ID), append(current, row.Slug)
+		}
 	}
 	if host != "" {
 		normalized, err := normalizeHost(host)
@@ -262,7 +310,18 @@ func (s *LinkService) Takedown(ctx context.Context, slugs []string, host string)
 		if err != nil {
 			return nil, nil, err
 		}
-		taken = append(taken, byHost...)
+		for _, row := range byHost {
+			ids, current = append(ids, row.ID), append(current, row.Slug)
+		}
+	}
+	taken, pending = append([]string{}, current...), []string{}
+	if len(ids) > 0 {
+		all, err := s.allSlugs(ctx, ids, current)
+		if err != nil {
+			log.Printf("takedown: list replaced slugs: %v; revoking current slugs only", err)
+		} else {
+			taken = all
+		}
 	}
 	for _, slug := range taken {
 		if s.redirects.Revoke(ctx, slug) != nil {
@@ -278,6 +337,7 @@ func (s *LinkService) withClicks(ctx context.Context, links []db.Link) ([]LinkSu
 		ids[i] = link.ID
 	}
 	counts := map[int64]int64{}
+	previous := map[int64][]string{}
 	if len(ids) > 0 {
 		rows, err := s.queries.ListClickCounts(ctx, ids)
 		if err != nil {
@@ -286,12 +346,39 @@ func (s *LinkService) withClicks(ctx context.Context, links []db.Link) ([]LinkSu
 		for _, row := range rows {
 			counts[row.LinkID] = row.HumanClicks
 		}
+		slugs, err := s.queries.ListPreviousSlugs(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range slugs {
+			previous[row.LinkID] = append(previous[row.LinkID], row.Slug)
+		}
 	}
 	summaries := make([]LinkSummary, len(links))
 	for i, link := range links {
-		summaries[i] = LinkSummary{Link: link, Clicks: counts[link.ID]}
+		summaries[i] = LinkSummary{Link: link, Clicks: counts[link.ID], PreviousSlugs: previous[link.ID]}
 	}
 	return summaries, nil
+}
+
+// allSlugs returns the current slugs given plus every other slug the links have had, so a
+// revocation reaches each one a cache may hold.
+func (s *LinkService) allSlugs(ctx context.Context, ids []int64, current []string) ([]string, error) {
+	stored, err := s.queries.ListLinkSlugs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]bool, len(current)+len(stored))
+	slugs := make([]string, 0, len(current)+len(stored))
+	for _, list := range [][]string{current, stored} {
+		for _, slug := range list {
+			if !seen[slug] {
+				seen[slug] = true
+				slugs = append(slugs, slug)
+			}
+		}
+	}
+	return slugs, nil
 }
 
 // owned loads a link the user owns. A missing link and someone else's link both return

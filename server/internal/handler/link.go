@@ -41,7 +41,7 @@ func (h *LinkHandler) Create(c *gin.Context) {
 		return
 	}
 
-	resp := newLinkResponse(h.baseURL, created.Link, 0)
+	resp := newLinkResponse(h.baseURL, service.LinkSummary{Link: created.Link})
 	resp.ClaimToken = created.ClaimToken
 	c.JSON(http.StatusCreated, resp)
 }
@@ -59,6 +59,32 @@ func (h *LinkHandler) List(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, newLinkResponses(h.baseURL, links))
+}
+
+// Update changes a link's slug. The old slug keeps redirecting to the same link.
+func (h *LinkHandler) Update(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+	id, ok := parseIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req changeSlugRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	summary, err := h.links.ChangeSlug(c.Request.Context(), userID, id, req.Slug)
+	if err != nil {
+		writeError(c, err, "could not update link")
+		return
+	}
+
+	c.JSON(http.StatusOK, newLinkResponse(h.baseURL, summary))
 }
 
 func (h *LinkHandler) Delete(c *gin.Context) {

@@ -59,7 +59,7 @@ func writeError(c *gin.Context, err error, fallback string) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 	case errors.Is(err, service.ErrSlugTaken), errors.Is(err, service.ErrDomainTaken):
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-	case errors.Is(err, service.ErrRateLimited):
+	case errors.Is(err, service.ErrRateLimited), errors.Is(err, service.ErrTooManySlugChanges):
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fallback})

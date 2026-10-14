@@ -27,7 +27,7 @@ func CORS(appURL string) gin.HandlerFunc {
 		header.Set("Access-Control-Allow-Origin", appURL)
 		header.Set("Access-Control-Allow-Credentials", "true")
 		if c.Request.Method == http.MethodOptions {
-			header.Set("Access-Control-Allow-Methods", "GET, POST, DELETE")
+			header.Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE")
 			header.Set("Access-Control-Allow-Headers", "Content-Type")
 			header.Set("Access-Control-Max-Age", "86400")
 			c.AbortWithStatus(http.StatusNoContent)

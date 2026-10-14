@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 	"github.com/ibrahimijai/sh.sh/internal/middleware"
 	"github.com/ibrahimijai/sh.sh/internal/service"
+	"github.com/lib/pq"
 )
 
 const testBaseURL = "http://localhost:8080"
@@ -27,6 +29,7 @@ type fakeQueries struct {
 	db.Querier
 	mu    sync.Mutex
 	links []db.Link
+	slugs []db.LinkSlug
 	now   time.Time
 
 	slugLookups int
@@ -45,10 +48,14 @@ type fakeQueries struct {
 	rollupWindows []db.GetRollupTotalsByLinkParams
 }
 
-// CreateLink mimics ON CONFLICT (slug) DO NOTHING: a taken slug returns no row.
+// CreateLink mimics ON CONFLICT DO NOTHING on link_slugs: a slug any link has ever had, or a
+// custom look-alike of one, returns no row.
 func (f *fakeQueries) CreateLink(_ context.Context, arg db.CreateLinkParams) (db.Link, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.slugIndex(arg.Slug) >= 0 || (arg.Custom && f.lookAlike(arg.Slug)) {
+		return db.Link{}, sql.ErrNoRows
+	}
 	for _, l := range f.links {
 		if l.Slug == arg.Slug {
 			return db.Link{}, sql.ErrNoRows
@@ -68,7 +75,98 @@ func (f *fakeQueries) CreateLink(_ context.Context, arg db.CreateLinkParams) (db
 		CreatorHash:    arg.CreatorHash,
 	}
 	f.links = append(f.links, link)
+	f.slugs = append(f.slugs, db.LinkSlug{Slug: arg.Slug, LinkID: link.ID, Custom: arg.Custom, CreatedAt: f.now})
 	return link, nil
+}
+
+func (f *fakeQueries) slugIndex(slug string) int {
+	return slices.IndexFunc(f.slugs, func(s db.LinkSlug) bool { return s.Slug == slug })
+}
+
+func (f *fakeQueries) lookAlike(slug string) bool {
+	return slices.ContainsFunc(f.slugs, func(s db.LinkSlug) bool { return s.Custom && strings.EqualFold(s.Slug, slug) })
+}
+
+func (f *fakeQueries) ownerOf(linkID int64) int64 {
+	for _, l := range f.links {
+		if l.ID == linkID {
+			return l.UserID.Int64
+		}
+	}
+	return 0
+}
+
+func (f *fakeQueries) ChangeLinkSlug(_ context.Context, arg db.ChangeLinkSlugParams) (db.Link, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	i := slices.IndexFunc(f.links, func(l db.Link) bool {
+		return l.ID == arg.ID && l.UserID.Valid && l.UserID.Int64 == arg.UserID && !l.DeletedAt.Valid
+	})
+	if i < 0 {
+		return db.Link{}, sql.ErrNoRows
+	}
+	switch j := f.slugIndex(arg.Slug); {
+	case j >= 0 && f.slugs[j].LinkID != arg.ID:
+		return db.Link{}, sql.ErrNoRows
+	case j >= 0:
+	case f.lookAlike(arg.Slug):
+		return db.Link{}, &pq.Error{Code: "23505"}
+	default:
+		f.slugs = append(f.slugs, db.LinkSlug{Slug: arg.Slug, LinkID: arg.ID, Custom: true, CreatedAt: f.now})
+	}
+	if j := f.slugIndex(f.links[i].Slug); j >= 0 {
+		f.slugs[j].ReplacedAt = sql.NullTime{Time: f.now, Valid: true}
+	}
+	f.links[i].Slug = arg.Slug
+	f.links[i].UpdatedAt = f.now
+	return f.links[i], nil
+}
+
+func (f *fakeQueries) CountSlugChangesSince(_ context.Context, arg db.CountSlugChangesSinceParams) (int64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var count int64
+	for _, s := range f.slugs {
+		if s.ReplacedAt.Valid && !s.ReplacedAt.Time.Before(arg.Since) && f.ownerOf(s.LinkID) == arg.UserID {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (f *fakeQueries) ListLinkSlugs(_ context.Context, ids []int64) ([]string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var slugs []string
+	for _, s := range f.slugs {
+		if slices.Contains(ids, s.LinkID) {
+			slugs = append(slugs, s.Slug)
+		}
+	}
+	return slugs, nil
+}
+
+// ListPreviousSlugs orders by replacement time, then most recently added first, because every
+// change in a test can share one timestamp.
+func (f *fakeQueries) ListPreviousSlugs(_ context.Context, ids []int64) ([]db.ListPreviousSlugsRow, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	current := map[string]bool{}
+	for _, l := range f.links {
+		current[l.Slug] = true
+	}
+	var replaced []db.LinkSlug
+	for i := len(f.slugs) - 1; i >= 0; i-- {
+		if s := f.slugs[i]; s.ReplacedAt.Valid && !current[s.Slug] && slices.Contains(ids, s.LinkID) {
+			replaced = append(replaced, s)
+		}
+	}
+	slices.SortStableFunc(replaced, func(a, b db.LinkSlug) int { return b.ReplacedAt.Time.Compare(a.ReplacedAt.Time) })
+	rows := make([]db.ListPreviousSlugsRow, len(replaced))
+	for i, s := range replaced {
+		rows[i] = db.ListPreviousSlugsRow{LinkID: s.LinkID, Slug: s.Slug}
+	}
+	return rows, nil
 }
 
 func (f *fakeQueries) CountLinksByCreatorSince(_ context.Context, arg db.CountLinksByCreatorSinceParams) (int64, error) {
@@ -87,12 +185,30 @@ func (f *fakeQueries) GetLinkBySlug(_ context.Context, slug string) (db.Link, er
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.slugLookups++
+	var id int64
+	if i := slices.IndexFunc(f.links, func(l db.Link) bool { return l.Slug == slug }); i >= 0 {
+		id = f.links[i].ID
+	} else if j := f.slugIndex(slug); j >= 0 {
+		id = f.slugs[j].LinkID
+	}
 	for _, l := range f.links {
-		if l.Slug == slug && l.IsActive && !l.DeletedAt.Valid {
+		if l.ID == id && l.IsActive && !l.DeletedAt.Valid {
 			return l, nil
 		}
 	}
 	return db.Link{}, sql.ErrNoRows
+}
+
+func (f *fakeQueries) ListLinksByUser(_ context.Context, arg db.ListLinksByUserParams) ([]db.Link, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var found []db.Link
+	for i := len(f.links) - 1; i >= 0; i-- {
+		if l := f.links[i]; l.UserID == arg.UserID && !l.DeletedAt.Valid {
+			found = append(found, l)
+		}
+	}
+	return found, nil
 }
 
 func (f *fakeQueries) SoftDeleteLink(_ context.Context, id int64) error {
@@ -204,14 +320,20 @@ func (f *fakeQueries) ListClickCounts(_ context.Context, ids []int64) ([]db.Link
 	return rows, nil
 }
 
-func (f *fakeQueries) DeactivateLinksBySlugs(_ context.Context, slugs []string) ([]string, error) {
+func (f *fakeQueries) DeactivateLinksBySlugs(_ context.Context, slugs []string) ([]db.DeactivateLinksBySlugsRow, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	taken := []string{}
+	named := map[int64]bool{}
+	for _, s := range f.slugs {
+		if slices.Contains(slugs, s.Slug) {
+			named[s.LinkID] = true
+		}
+	}
+	var taken []db.DeactivateLinksBySlugsRow
 	for i, l := range f.links {
-		if l.IsActive && slices.Contains(slugs, l.Slug) {
+		if l.IsActive && (named[l.ID] || slices.Contains(slugs, l.Slug)) {
 			f.links[i].IsActive = false
-			taken = append(taken, l.Slug)
+			taken = append(taken, db.DeactivateLinksBySlugsRow{ID: l.ID, Slug: l.Slug})
 		}
 	}
 	return taken, nil
@@ -298,9 +420,11 @@ func (s *testServer) do(t *testing.T, userID int64, method, path string, body an
 		}
 	}
 	r.POST("/api/v1/links", asUser, s.links.Create)
+	r.GET("/api/v1/links", asUser, s.links.List)
 	r.POST("/api/v1/links/lookup", s.links.Lookup)
 	r.POST("/api/v1/links/claim", asUser, s.links.Claim)
 	r.GET("/api/v1/links/:id/stats", asUser, s.links.Stats)
+	r.PATCH("/api/v1/links/:id", asUser, s.links.Update)
 	r.DELETE("/api/v1/links/:id", asUser, s.links.Delete)
 	r.POST("/api/v1/admin/takedown", middleware.AdminToken(testAdminToken), s.admin.Takedown)
 	r.NoRoute(s.redirects.Redirect)

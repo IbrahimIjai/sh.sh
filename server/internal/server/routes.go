@@ -74,6 +74,7 @@ func NewRouter(cfg config.Config, pinger handler.Pinger, authServer *auth.Server
 			links.GET("", h.Links.List)
 			links.POST("/claim", h.Links.Claim)
 			links.GET("/:id/stats", h.Links.Stats)
+			links.PATCH("/:id", h.Links.Update)
 			links.DELETE("/:id", h.Links.Delete)
 		}
 

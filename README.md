@@ -15,8 +15,9 @@ failure tests.
 - **Instant shortening:** create links without an account; claim anonymous links after signing in.
 - **Accounts and link management:** email magic links, optional Google OAuth, saved links, search,
   and deletion.
-- **Custom slugs and previews:** choose a slug through the authenticated API; inspect a destination
-  at `/{slug}+` without registering a click.
+- **Custom slugs and previews:** signed-in users choose a slug of up to 128 characters, or rename a
+  link later from the dashboard; old slugs keep redirecting and share the link's stats. Inspect a
+  destination at `/{slug}+` without registering a click.
 - **Analytics:** dashboard and API for human clicks, approximate unique visitors, bot visits, daily
   trends, referrers, traffic sources, devices, browsers, locations (when configured), and UTM
   campaigns.
@@ -241,6 +242,7 @@ The response includes `short_url` and, for anonymous links, a one-time `claim_to
 | `POST /api/v1/links/claim` | Claim anonymous links after signing in |
 | `GET /api/v1/links` | List your links |
 | `GET /api/v1/links/:id/stats?days=30` | Analytics for one of your links |
+| `PATCH /api/v1/links/:id` | Rename one of your links; old slugs keep working |
 | `DELETE /api/v1/links/:id` | Soft-delete one of your links |
 | `GET /{slug}` | Redirect with HTTP 302 |
 | `GET /{slug}+` | Preview the destination |

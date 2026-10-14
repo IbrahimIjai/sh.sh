@@ -11,9 +11,9 @@ export function useCreateLink() {
   const api = useApi()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (targetUrl: string) => api<CreatedLink>('/api/v1/links', {
+    mutationFn: ({ targetUrl, slug }: { targetUrl: string, slug?: string }) => api<CreatedLink>('/api/v1/links', {
       method: 'POST',
-      body: { target_url: targetUrl }
+      body: slug ? { target_url: targetUrl, slug } : { target_url: targetUrl }
     }),
     onSuccess: (link) => {
       rememberClaimToken(link.claim_token)

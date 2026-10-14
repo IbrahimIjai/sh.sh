@@ -9,12 +9,16 @@ const { copy, copied, isSupported: canCopy } = useClipboard({ copiedDuring: 2000
 const { data: user } = useCurrentUser()
 const createLink = useCreateLink()
 const history = useLinkHistory()
+const prefix = shortLinkPrefix(useRuntimeConfig().public.apiBase)
 
 const longUrl = ref('')
+const slug = ref('')
+const customizing = ref(false)
 const error = ref('')
 const link = ref<CreatedLink | null>(null)
 
 const input = useTemplateRef('input')
+const slugInput = useTemplateRef('slugInput')
 const copyButton = useTemplateRef('copyButton')
 
 const displayUrl = computed(() => link.value?.short_url.replace(/^https?:\/\//, '') ?? '')
@@ -47,6 +51,24 @@ function showInline(message: string) {
   input.value?.focus()
 }
 
+function showSlugError(message: string) {
+  error.value = message
+  slugInput.value?.focus()
+}
+
+async function startCustomizing() {
+  customizing.value = true
+  await nextTick()
+  slugInput.value?.focus()
+}
+
+function stopCustomizing() {
+  customizing.value = false
+  slug.value = ''
+  error.value = ''
+  input.value?.focus()
+}
+
 function shorten() {
   if (createLink.isPending.value) return
 
@@ -55,17 +77,24 @@ function shorten() {
   const target = normalize(raw)
   if (!target) return showInline('That does not look like a valid URL.')
   if (target.length > MAX_URL_LENGTH) return showInline('That URL is too long to shorten.')
+  const custom = customizing.value ? slug.value.trim() : ''
+  const problem = custom && slugProblem(custom)
+  if (problem) return showSlugError(problem)
 
   error.value = ''
-  createLink.mutate(target, {
+  createLink.mutate({ targetUrl: target, slug: custom || undefined }, {
     onSuccess: async (created) => {
       link.value = created
+      slug.value = ''
+      customizing.value = false
       history.remember({ short_url: created.short_url, target_url: created.target_url, created_at: created.created_at })
       toast.success('That link got a haircut.')
       await nextTick()
       copyButton.value?.$el.focus()
     },
     onError: (err) => {
+      const slugIssue = custom && slugRejection(err)
+      if (slugIssue) return showSlugError(slugIssue)
       const status = apiStatus(err)
       if (status === 400) return showInline(rejectedReason(err))
       if (status === 429) {
@@ -95,7 +124,7 @@ async function reset() {
   input.value?.focus()
 }
 
-watch(longUrl, () => {
+watch([longUrl, slug], () => {
   error.value = ''
 })
 </script>
@@ -108,7 +137,7 @@ watch(longUrl, () => {
     >
       <form
         v-if="!link"
-        class="flex flex-col gap-2 sm:flex-row"
+        class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"
         novalidate
         @submit.prevent="shorten"
       >
@@ -127,16 +156,49 @@ watch(longUrl, () => {
           spellcheck="false"
           placeholder="Paste a long URL"
           :readonly="createLink.isPending.value"
-          :aria-invalid="error ? 'true' : undefined"
+          :aria-invalid="error && !customizing ? 'true' : undefined"
           aria-describedby="shorten-note"
-          class="h-12 min-w-0 rounded-lg bg-transparent px-3 text-base text-highlighted outline-none placeholder:text-dimmed sm:flex-1"
+          class="h-12 min-w-0 rounded-lg bg-transparent px-3 text-base text-highlighted outline-none placeholder:text-dimmed sm:col-start-1 sm:row-start-1"
         >
+        <div
+          v-if="customizing"
+          class="flex h-12 min-w-0 items-center gap-1 rounded-lg bg-muted ps-3 pe-1 sm:col-span-2 sm:row-start-2"
+        >
+          <label
+            for="custom-slug"
+            class="shrink-0 text-base text-muted"
+          >{{ prefix }}</label>
+          <input
+            id="custom-slug"
+            ref="slugInput"
+            v-model="slug"
+            type="text"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="your-name"
+            :maxlength="SLUG_MAX_LENGTH"
+            :readonly="createLink.isPending.value"
+            :aria-invalid="error ? 'true' : undefined"
+            aria-describedby="shorten-note"
+            class="h-full min-w-0 flex-1 bg-transparent text-base text-highlighted outline-none placeholder:text-dimmed"
+          >
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            square
+            icon="i-lucide-x"
+            aria-label="Remove custom name"
+            @click="stopCustomizing"
+          />
+        </div>
         <UButton
           type="submit"
           size="xl"
           :loading="createLink.isPending.value"
           :disabled="createLink.isPending.value"
-          class="h-12 justify-center sm:w-28"
+          class="h-12 justify-center sm:col-start-2 sm:row-start-1 sm:w-28"
         >
           Shorten
         </UButton>
@@ -177,13 +239,22 @@ watch(longUrl, () => {
 
     <div class="mt-3 flex min-h-8 flex-wrap items-center justify-center gap-x-4 gap-y-1 px-1 text-[13px] sm:justify-between">
       <p
-        v-if="!link"
+        v-if="!link && (note || !user || customizing)"
         id="shorten-note"
         aria-live="polite"
         :class="error ? 'text-error' : 'text-muted'"
       >
         {{ note }}
       </p>
+      <UButton
+        v-else-if="!link"
+        variant="link"
+        size="sm"
+        class="px-0 text-[13px] text-toned hover:text-highlighted"
+        @click="startCustomizing"
+      >
+        Choose a custom name
+      </UButton>
       <UButton
         v-else
         variant="link"

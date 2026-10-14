@@ -25,7 +25,7 @@ const filtered = computed(() => {
   const term = search.value.trim().toLowerCase()
   if (!term) return all.value
   return all.value.filter(link =>
-    link.slug.toLowerCase().includes(term) || link.target_url.toLowerCase().includes(term)
+    [link.slug, link.target_url, ...(link.previous_slugs ?? [])].some(value => value.toLowerCase().includes(term))
   )
 })
 const isLoading = computed(() => me.isPending.value || links.isPending.value)
