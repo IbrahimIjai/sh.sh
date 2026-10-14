@@ -23,8 +23,8 @@ export const options = {
       executor: 'ramping-arrival-rate',
       startRate: Math.ceil(RATE / 10),
       timeUnit: '1s',
-      preAllocatedVUs: Math.max(50, Math.ceil(RATE / 2)),
-      maxVUs: Math.max(200, RATE * 2),
+      preAllocatedVUs: Number(__ENV.PRE_VUS || Math.max(50, Math.ceil(RATE / 2))),
+      maxVUs: Number(__ENV.MAX_VUS || Math.max(200, RATE * 2)),
       stages: [
         { target: RATE, duration: `${WARMUP_S}s` },
         { target: RATE, duration: `${HOLD_S}s` },

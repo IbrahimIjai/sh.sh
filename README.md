@@ -102,6 +102,78 @@ now times the warm-up from the scenario start. Click persistence was not reconci
 See the [results and caveats](benchmarks/README.md) and the
 [k6 summaries](benchmarks/2026-10-12-production/run2-1000-to-3000/).
 
+## Run the benchmark
+
+Requirements: Go 1.26+, Docker Compose, [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/), and `jq`.
+
+### 1. Start PostgreSQL, Redis, and the API
+
+```sh
+cd sh.sh/server
+cp .env.example .env    # set LIMEN_SECRET: openssl rand -hex 16
+
+docker compose up -d db redis
+set -a; . ./.env; set +a
+REDIS_URL=redis://localhost:6380/0 REQUEST_LOG=off go run ./cmd/api
+```
+
+`REQUEST_LOG=off` keeps the access log from becoming part of the measurement.
+
+### 2. Create a test link
+
+In another terminal:
+
+```sh
+TARGET=https://example.com/k6
+SLUG=$(curl -s -X POST http://localhost:8080/api/v1/links \
+  -H 'Content-Type: application/json' \
+  -d "{\"target_url\":\"$TARGET\"}" | jq -r .slug)
+echo "$SLUG"
+```
+
+Every request records a click against this link, so don't reuse a real one.
+
+### 3. Run k6
+
+```sh
+cd sh.sh/benchmarks/2026-10-12-production/scripts
+
+BASE=http://localhost:8080 SLUG=$SLUG TARGET=$TARGET \
+RATE=10000 PRE_VUS=500 MAX_VUS=3000 \
+k6 run --summary-export local-10000.json redirect-live.js
+```
+
+The script ramps to `RATE` over 20 s (`WARMUP_S`), then holds it for 60 s (`HOLD_S`). Only the
+held minute is reported in the `hold_*` metrics. The run fails if more than 1% of held requests
+error or p95 exceeds 500 ms. `PRE_VUS` and `MAX_VUS` set the k6 virtual user pool; raise
+`MAX_VUS` if k6 reports `dropped_iterations`.
+
+![k6 summary for a 10,000 redirects/s target on one laptop](benchmarks/2026-10-14-local-redirect/k6-10000.png)
+
+A run of this command on October 14, 2026, on one laptop (Intel Core i7-8706G, 4 cores / 8 threads,
+16 GB) running k6, the API, PostgreSQL, and Redis together over plain HTTP. During the held minute,
+588,390 redirects completed, about 9,800/s, with no errors and a p95 of 26.8 ms. The laptop could
+not schedule 11,829 iterations, so the 10,000/s target was not fully reached. All 698,171 clicks,
+warm-up included, were stored in PostgreSQL. Every request hit one cached link, so this is not
+comparable to the resource-limited runs above. [Results and environment](benchmarks/README.md#2026-10-14-local-one-link-no-limits).
+
+### 4. Check that every click was stored
+
+```sh
+cd sh.sh/server
+docker compose exec db psql -U postgres -d myapp -Atc \
+  "select count(*) from clicks c join links l on l.id = c.link_id where l.slug = '$SLUG'"
+docker compose exec redis redis-cli xlen sh:clicks
+docker compose exec redis redis-cli xlen sh:clicks:dead
+```
+
+After the stream drains, the count should equal k6's `http_reqs` total (warm-up included), and
+both stream lengths should be `0`.
+
+To run against a deployment instead, see the
+[production scripts](benchmarks/README.md#running-them). Results depend on the machine: with k6
+on the same host, the load generator competes with the service for CPU.
+
 ## Stack
 
 | Area | Technologies |

@@ -8,6 +8,46 @@ and the longer technical version is [`WRITEUP.md`](../WRITEUP.md).
 |---|---|---|
 | [2026-09-29 local](2026-09-29-local/) | One laptop, Docker, plain HTTP | How far the design goes: mixed workloads, analytics under load, dependency failures |
 | [2026-10-12 production](2026-10-12-production/) | The live VPS, through HTTPS and Traefik | What the deployed service sustains on real infrastructure |
+| [2026-10-14 local redirect](2026-10-14-local-redirect/) | One laptop, no limits, plain HTTP | What a cached redirect and its click cost, and whether every click is stored |
+
+## 2026-10-14: local, one link, no limits
+
+Redirects to one link on a laptop with nothing capped: the Go API as a native process, PostgreSQL
+17.11 and Redis 7.2.16 in Docker, and k6 v0.57.0 on the same machine, over plain HTTP.
+
+**Host:** Intel Core i7-8706G (4 cores / 8 threads), 16 GB RAM, also running a desktop, editor and
+browser. Details in [`environment.json`](2026-10-14-local-redirect/environment.json).
+
+Each step ramps for 20 s, then holds the target for 60 s, using
+[`redirect-live.js`](2026-10-12-production/scripts/redirect-live.js) with the corrected warm-up timing.
+
+| Target | Delivered | Errors | p50 | p95 | p99 | Dropped iterations | Clicks stored |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 4,000 r/s | 4,000 r/s | 0% | 0.2 ms | 3.2 ms | 8.8 ms | 0 | 283,945 of 283,945 |
+| 10,000 r/s | 9,807 r/s | 0% | 1.3 ms | 26.8 ms | 61.3 ms | 11,829 | 698,171 of 698,171 |
+
+Clicks stored covers every request each run sent, warm-up included, counted in PostgreSQL after the
+Redis stream drained. The stream and its dead-letter stream were both empty afterwards. An earlier
+10,000 r/s attempt delivered 9,558 r/s (p95 39.3 ms) and also stored every click.
+
+CPU during the 4,000 r/s hold, in logical CPUs: API 0.70 (including the click workers), PostgreSQL
+0.34, Redis 0.02, k6 1.53. Samples: [per process](2026-10-14-local-redirect/cpu-4000-pidstat.txt),
+[host](2026-10-14-local-redirect/cpu-4000-mpstat.txt). The k6 output of the 10,000 r/s run is in
+[`k6-10000.png`](2026-10-14-local-redirect/k6-10000.png).
+
+**What this supports:** on this CPU, a cached redirect and its click cost about 0.27 cores per
+1,000 r/s across the API, PostgreSQL and Redis, and the click pipeline kept up with about 9,800
+clicks a second without losing any. At 10,000 r/s, the shared laptop CPU was the limit: k6 couldn't
+keep its schedule, and every request it did send got a correct redirect.
+
+**What it does not:**
+- Every request hit one link, always in the in-process cache. Cache misses and many links were not
+  tested here (the 2026-09-29 run covers a mixed workload).
+- Plain HTTP over keep-alive connections, with no TLS or proxy. Not comparable to the production
+  run, or to the capped 2026-09-29 runs.
+- k6 and a desktop session shared the CPU, so neither the API's own limit nor a production capacity
+  is established. Scaling the 4,000 r/s figures puts 10,000 r/s at about 2.7 cores for the
+  service; that is an estimate, not a measurement.
 
 ## 2026-10-12: production VPS
 
