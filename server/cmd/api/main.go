@@ -17,6 +17,7 @@ import (
 	"github.com/ibrahimijai/sh.sh/internal/database"
 	db "github.com/ibrahimijai/sh.sh/internal/db/generated"
 	"github.com/ibrahimijai/sh.sh/internal/handler"
+	"github.com/ibrahimijai/sh.sh/internal/middleware"
 	"github.com/ibrahimijai/sh.sh/internal/rediscache"
 	"github.com/ibrahimijai/sh.sh/internal/safety"
 	"github.com/ibrahimijai/sh.sh/internal/server"
@@ -186,7 +187,7 @@ func main() {
 	if cfg.MetricsAddr != "" {
 		m := service.NewMetrics()
 		m.Track(conn, redirects, recorder, stream)
-		handlers.Metrics = handler.RequestMetrics(m)
+		handlers.Metrics = middleware.RequestMetrics(m)
 		server.ServeInternal(ctx, cfg.MetricsAddr, handler.NewInternalHandler(m))
 	}
 

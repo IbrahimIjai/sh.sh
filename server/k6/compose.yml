@@ -54,6 +54,18 @@ services:
       timeout: 3s
       retries: 30
 
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    profiles: [monitoring]
+    ports:
+      - "127.0.0.1:19090:9090"
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheusdata:/prometheus
+    depends_on:
+      api:
+        condition: service_healthy
+
   k6:
     image: grafana/k6:2.3.0
     profiles: [tools]
@@ -72,3 +84,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  prometheusdata:

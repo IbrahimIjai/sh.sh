@@ -91,6 +91,11 @@ machine used when publishing results; older capped benchmark numbers are not dir
 
 ## Read the result
 
+To watch API metrics during a run, start `docker compose --profile monitoring up -d --wait`
+and open <http://localhost:19090>. Prometheus scrapes every 15 seconds. The
+[Prometheus guide](../prometheus/README.md) has queries for traffic, latency, errors, and queues.
+Use `docker compose --profile monitoring down -v` when cleaning up that stack.
+
 k6 prints checks, request counts, latency and pass/fail thresholds. A failed check makes the
 command exit unsuccessfully. Load tests require correct responses, fewer than 1% HTTP errors,
 95th percentile latency below `P95_MS`, and zero dropped iterations.

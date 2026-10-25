@@ -18,6 +18,7 @@ type Metrics struct {
 	registry *prometheus.Registry
 	requests *prometheus.CounterVec
 	duration *prometheus.HistogramVec
+	inFlight prometheus.Gauge
 }
 
 func NewMetrics() *Metrics {
@@ -37,12 +38,21 @@ func NewMetrics() *Metrics {
 			Help:    "Time to serve HTTP requests, by route and method.",
 			Buckets: []float64{.0005, .001, .0025, .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5},
 		}, []string{"route", "method"}),
+		inFlight: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "http_requests_in_flight",
+			Help: "HTTP requests currently being served by the public API.",
+		}),
 	}
-	registry.MustRegister(m.requests, m.duration)
+	registry.MustRegister(m.requests, m.duration, m.inFlight)
 	return m
 }
 
-func (m *Metrics) ObserveRequest(route, method string, status int, took time.Duration) {
+func (m *Metrics) RequestStarted() {
+	m.inFlight.Inc()
+}
+
+func (m *Metrics) RequestFinished(route, method string, status int, took time.Duration) {
+	m.inFlight.Dec()
 	m.requests.WithLabelValues(route, method, strconv.Itoa(status)).Inc()
 	m.duration.WithLabelValues(route, method).Observe(took.Seconds())
 }

@@ -7,8 +7,8 @@ for auth (magic link + Google OAuth).
 Code layout: `cmd/api` (wiring), `internal/server` (routes, shutdown, metrics listener),
 `internal/middleware`, `internal/handler` (HTTP only), `internal/service` (business rules),
 `internal/db/generated` (sqlc), plus `cache`, `rediscache`, `analytics`, `clickstream`. The maintenance job is `service/maintenance.go`.
-Metrics live in `service/metrics.go` (what is counted) and `handler/metrics.go` (request timing and the
-internal `/metrics` listener). [`k6/`](k6/README.md) contains the API behavior checks and load tests.
+Metrics live in `service/metrics.go` (collectors), `middleware/metrics.go` (request timing), and
+`handler/metrics.go` (the internal `/metrics` listener). [`k6/`](k6/README.md) contains the API behavior checks and load tests.
 
 ## How to run locally
 
@@ -141,11 +141,12 @@ docker compose up --build
 
 Prometheus is available at <http://localhost:9090>. Its configuration lives in
 [`prometheus/prometheus.yml`](prometheus/prometheus.yml) and scrapes the API's internal
-`api:9090/metrics` endpoint every 15 seconds, plus Prometheus itself. Compose sets
+`api:9090/metrics` endpoint every 10 seconds, plus Prometheus itself. Compose sets
 `METRICS_ADDR=:9090` for the API without publishing that listener to the host; the Prometheus
 UI is bound to host loopback only. Metrics persist in the `prometheusdata` volume.
 Check <http://localhost:9090/targets> or query `up{job="api"}` (expected value: `1`).
 After editing the scrape configuration, run `docker compose restart prometheus`.
+See the [Prometheus guide](prometheus/README.md) for metrics, queries, and monitoring k6 tests.
 
 Useful extras:
 
