@@ -8,7 +8,7 @@ are a two-level redirect cache, an asynchronous click pipeline, and a set of rep
 failure tests.
 
 [Web app](https://app.shortened.cv) · [Short-link domain](https://shortened.cv) ·
-[Technical write-up](WRITEUP.md) · [Benchmark evidence](benchmarks/README.md)
+[Technical write-up](WRITEUP.md) · [Benchmark evidence](k6-benchmarks/README.md)
 
 ## Features
 
@@ -62,7 +62,7 @@ For the design decisions and failure handling, read [Building shortened.cv](WRIT
 
 ## Benchmarks
 
-The repository includes the [test harnesses, environment manifests, and recorded results](benchmarks/README.md).
+The repository includes the [test harnesses, environment manifests, and recorded results](k6-benchmarks/README.md).
 These are short synthetic measurements, not availability or maximum-capacity guarantees.
 
 ### Local mixed workload · September 29, 2026
@@ -81,8 +81,8 @@ was limited to 2 CPUs and 512 MiB, PostgreSQL to 2 CPUs and 1 GiB, and Redis to 
 The 3,200 redirects/s run had no HTTP errors, incorrect responses, or dropped iterations. After the
 click queue drained, all 192,000 events were reconciled with PostgreSQL, including 19,200 bot
 requests, and all 6,001 created links were accounted for. Results:
-[load data](benchmarks/2026-09-29-local/load-results.json) and
-[environment](benchmarks/2026-09-29-local/environment.json).
+[load data](k6-benchmarks/2026-09-29-local/load-results.json) and
+[environment](k6-benchmarks/2026-09-29-local/environment.json).
 
 ### Live VPS through HTTPS and Traefik · October 12, 2026
 
@@ -98,82 +98,43 @@ request targeted one warm-cached link over TLS keep-alive connections.
 
 These numbers measure Traefik, TLS, the API, and an on-host load generator together; they don't
 isolate the Go server. The harness used for this run started its warm-up clock per k6 virtual user,
-so the hold-window figures are approximate. The [script](benchmarks/2026-10-12-production/scripts/redirect-live.js)
+so the hold-window figures are approximate. The [script](k6-benchmarks/2026-10-12-production/scripts/redirect-live.js)
 now times the warm-up from the scenario start. Click persistence was not reconciled after each step.
-See the [results and caveats](benchmarks/README.md) and the
-[k6 summaries](benchmarks/2026-10-12-production/run2-1000-to-3000/).
+See the [results and caveats](k6-benchmarks/README.md) and the
+[k6 summaries](k6-benchmarks/2026-10-12-production/run2-1000-to-3000/).
 
-## Run the benchmark
+## Run the k6 tests
 
-Requirements: Go 1.26+, Docker Compose, [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/), and `jq`.
-
-### 1. Start PostgreSQL, Redis, and the API
+Docker Compose provides a separate test database, Redis, and API. From the repository root:
 
 ```sh
-cd sh.sh/server
-cp .env.example .env    # set LIMEN_SECRET: openssl rand -hex 16
-
-docker compose up -d db redis
-set -a; . ./.env; set +a
-REDIS_URL=redis://localhost:6380/0 REQUEST_LOG=off go run ./cmd/api
+cd server/k6
+docker compose up -d --build --wait
+docker compose exec -T db psql -U postgres -d k6 < seed.sql
+docker compose run --rm k6 run smoke.js
+docker compose run --rm k6 run mixed.js
 ```
 
-`REQUEST_LOG=off` keeps the access log from becoming part of the measurement.
-
-### 2. Create a test link
-
-In another terminal:
+Choose `health.js`, `redirects.js`, `create.js`, `stats.js`, or `mixed.js` for load tests.
+`smoke.js` checks API behavior; `clicks.js` verifies that a known number of visits are stored.
 
 ```sh
-TARGET=https://example.com/k6
-SLUG=$(curl -s -X POST http://localhost:8080/api/v1/links \
-  -H 'Content-Type: application/json' \
-  -d "{\"target_url\":\"$TARGET\"}" | jq -r .slug)
-echo "$SLUG"
+# 1,000 redirects/s for one minute
+docker compose run --rm -e RATE=1000 -e DURATION=1m k6 run redirects.js
+
+# Remove the test stack and its data when finished
+docker compose down -v
 ```
 
-Every request records a click against this link, so don't reuse a real one.
+See the [k6 guide](server/k6/README.md) for settings, larger analytics datasets, recovery checks,
+and testing another deployment. [Recorded results](k6-benchmarks/README.md) include the exact
+conditions and limitations of earlier runs.
 
-### 3. Run k6
+![k6 summary for a 10,000 redirects/s target on one laptop](k6-benchmarks/2026-10-14-local-redirect/k6-10000.png)
 
-```sh
-cd sh.sh/benchmarks/2026-10-12-production/scripts
-
-BASE=http://localhost:8080 SLUG=$SLUG TARGET=$TARGET \
-RATE=10000 PRE_VUS=500 MAX_VUS=3000 \
-k6 run --summary-export local-10000.json redirect-live.js
-```
-
-The script ramps to `RATE` over 20 s (`WARMUP_S`), then holds it for 60 s (`HOLD_S`). Only the
-held minute is reported in the `hold_*` metrics. The run fails if more than 1% of held requests
-error or p95 exceeds 500 ms. `PRE_VUS` and `MAX_VUS` set the k6 virtual user pool; raise
-`MAX_VUS` if k6 reports `dropped_iterations`.
-
-![k6 summary for a 10,000 redirects/s target on one laptop](benchmarks/2026-10-14-local-redirect/k6-10000.png)
-
-A run of this command on October 14, 2026, on one laptop (Intel Core i7-8706G, 4 cores / 8 threads,
-16 GB) running k6, the API, PostgreSQL, and Redis together over plain HTTP. During the held minute,
-588,390 redirects completed, about 9,800/s, with no errors and a p95 of 26.8 ms. The laptop could
-not schedule 11,829 iterations, so the 10,000/s target was not fully reached. All 698,171 clicks,
-warm-up included, were stored in PostgreSQL. Every request hit one cached link, so this is not
-comparable to the resource-limited runs above. [Results and environment](benchmarks/README.md#2026-10-14-local-one-link-no-limits).
-
-### 4. Check that every click was stored
-
-```sh
-cd sh.sh/server
-docker compose exec db psql -U postgres -d myapp -Atc \
-  "select count(*) from clicks c join links l on l.id = c.link_id where l.slug = '$SLUG'"
-docker compose exec redis redis-cli xlen sh:clicks
-docker compose exec redis redis-cli xlen sh:clicks:dead
-```
-
-After the stream drains, the count should equal k6's `http_reqs` total (warm-up included), and
-both stream lengths should be `0`.
-
-To run against a deployment instead, see the
-[production scripts](benchmarks/README.md#running-them). Results depend on the machine: with k6
-on the same host, the load generator competes with the service for CPU.
+The October 14 run delivered about 9,800 redirects/s to one cached link on one laptop, with k6
+sharing the machine. All 698,171 clicks, including warm-up, were stored. See the
+[results and environment](k6-benchmarks/README.md#2026-10-14-local-one-link-no-limits).
 
 ## Stack
 
@@ -260,22 +221,21 @@ go test -race ./...
 bun run lint
 bun run typecheck
 
-# Disposable local benchmark (from the repository root)
-python3 server/scripts/load/article.py --profiles smoke --output /tmp/sh-smoke
+# API checks from the repository root (after starting the test stack above)
+docker compose -f server/k6/compose.yml run --rm k6 run smoke.js
 ```
 
-PostgreSQL and Redis integration tests and the end-to-end script are covered in the
-[server README](server/README.md). Load-test guides: [local](server/scripts/load/README.md) ·
-[multi-machine](server/scripts/proof/README.md).
+PostgreSQL and Redis integration tests are covered in the [server README](server/README.md).
+API behavior and load tests are documented in the [k6 guide](server/k6/README.md).
 
 ## Repository layout
 
 ```
 sh.sh/
-├── server/        Go API, queries, migrations, tests
-├── ui/            Nuxt frontend and analytics dashboard
-├── benchmarks/    Published local and live-VPS results
-├── WRITEUP.md     Architecture and engineering notes
+├── server/         Go API, queries, migrations, tests, k6 load tests
+├── ui/             Nuxt frontend and analytics dashboard
+├── k6-benchmarks/  Published local and live-VPS results
+├── WRITEUP.md      Architecture and engineering notes
 └── README.md
 ```
 

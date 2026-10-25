@@ -1,4 +1,4 @@
-# Benchmarks
+# k6 benchmarks
 
 Measured results for shortened.cv, with the environment each run used. The write-up that explains
 them is at [iamibrahim.xyz/articles/building-shortened-cv](https://iamibrahim.xyz/articles/building-shortened-cv),
@@ -114,14 +114,14 @@ k6 on the same machine. Details in [`environment.json`](2026-09-29-local/environ
 The run was taken at commit `b58d9fa` with uncommitted changes, listed in `environment.json`.
 Secrets in the container environment are redacted; they were local test values.
 
-## Running them
+## Run the current tests
 
-- Local: [`server/scripts/load`](../server/scripts/load/README.md)
-- Production: [`2026-10-12-production/scripts`](2026-10-12-production/scripts/). Copy both files and a
-  [k6 binary](https://github.com/grafana/k6/releases) to `~/k6bench` on the load machine, then:
+Use the [k6 guide](../server/k6/README.md). The maintained tests live in `server/k6/`, with
+separate files for health, API behavior, redirects, creation, analytics, mixed traffic, and
+click persistence. All use the same settings and a separate local Docker Compose stack.
 
-  ```sh
-  SLUG=abc123 TARGET='https://example.com/' RATES="1000 2000" ./run-live.sh
-  ```
-
-  Each click is recorded against that link, so use a link made for testing.
+These recorded results came from earlier harnesses. The Python `load` / `proof` runners and
+Barrage were removed when the tests were simplified. Their recorded numbers remain unchanged;
+the current suite does not recreate their exact fixtures, limits, or fault schedules.
+The [production scripts](2026-10-12-production/scripts/) are kept only as historical context
+for the published measurements. Use `server/k6/redirects.js` for new runs.

@@ -8,7 +8,7 @@ Code layout: `cmd/api` (wiring), `internal/server` (routes, shutdown, metrics li
 `internal/middleware`, `internal/handler` (HTTP only), `internal/service` (business rules),
 `internal/db/generated` (sqlc), plus `cache`, `rediscache`, `analytics`, `clickstream`. The maintenance job is `service/maintenance.go`.
 Metrics live in `service/metrics.go` (what is counted) and `handler/metrics.go` (request timing and the
-internal `/metrics` listener). `scripts/load` and `scripts/proof` are the benchmark harnesses.
+internal `/metrics` listener). [`k6/`](k6/README.md) contains the API behavior checks and load tests.
 
 ## How to run locally
 
@@ -277,5 +277,11 @@ TEST_DATABASE_URL='...' TEST_REDIS_URL='redis://localhost:6380/0' go test -race 
 
 goose up                            # apply new migrations to the local database
 docker compose up --build -d        # run the stack
-scripts/e2e.sh                      # end-to-end checks against it (needs curl and jq)
+# Separate disposable test stack; see k6/README.md for all tests and settings.
+cd k6
+docker compose up -d --build --wait
+docker compose exec -T db psql -U postgres -d k6 < seed.sql
+docker compose run --rm k6 run smoke.js
+docker compose run --rm k6 run mixed.js
+docker compose down -v
 ```

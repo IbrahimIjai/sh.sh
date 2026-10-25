@@ -1,0 +1,74 @@
+name: sh-k6
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: k6-local-only
+      POSTGRES_DB: k6
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d k6"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7.2-alpine
+    command: [redis-server, --maxmemory, 256mb, --maxmemory-policy, volatile-lru, --appendonly, "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: ..
+    environment:
+      APP_ENV: development
+      PORT: "8080"
+      BASE_URL: http://localhost:18080
+      DATABASE_URL: postgres://postgres:k6-local-only@db:5432/k6?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      LIMEN_SECRET: "0123456789abcdef0123456789abcdef"
+      ADMIN_TOKEN: k6-local-admin-token-0123456789abcdef
+      REQUEST_LOG: "off"
+      METRICS_ADDR: ":9090"
+      LINK_CACHE_SIZE: ${LINK_CACHE_SIZE:-100000}
+      CLICK_QUEUE: ${CLICK_QUEUE:-redis}
+    ports:
+      - "127.0.0.1:18080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://localhost:8080/health/ready]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  k6:
+    image: grafana/k6:2.3.0
+    profiles: [tools]
+    working_dir: /tests
+    volumes:
+      - .:/tests:ro
+    environment:
+      BASE_URL: http://api:8080
+      SESSION_COOKIE: limen_session=k6-local-owner
+      OTHER_SESSION_COOKIE: limen_session=k6-local-other
+      ADMIN_TOKEN: k6-local-admin-token-0123456789abcdef
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:

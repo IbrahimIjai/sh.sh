@@ -276,8 +276,8 @@ redirect p99 was **2.9 ms**. During that confirmation stage, reports for the lar
 with **1,000,200 clicks**, took at most **122 ms**.
 
 Those reports benefited from the stored aggregates. The result measures the implemented reporting
-path, including its data layout. The [reporting results](benchmarks/2026-09-29-local/reporting-results.json)
-and [seed details](benchmarks/2026-09-29-local/reporting-seed.json) preserve the evidence.
+path, including its data layout. The [reporting results](k6-benchmarks/2026-09-29-local/reporting-results.json)
+and [seed details](k6-benchmarks/2026-09-29-local/reporting-seed.json) preserve the evidence.
 
 ## What the load tests measured
 
@@ -341,8 +341,9 @@ The click workers eventually stored all 270,048 successful redirect events from 
 stage. The generator and services were competing for the same machine, so this run identifies
 a failed local workload without establishing the ceiling of a separately hosted API.
 
-The [load results](benchmarks/2026-09-29-local/load-results.json) record successful and
-failed stages. The [load harness](server/scripts/load/README.md) documents reproduction.
+The [load results](k6-benchmarks/2026-09-29-local/load-results.json) record successful and
+failed stages. The [current k6 guide](server/k6/README.md) documents new runs; the older harness
+used for these measurements has been retired.
 These short synthetic runs establish capacity under their stated conditions; longer runs and
 a separate generator are needed to assess sustained deployment capacity.
 
@@ -360,7 +361,7 @@ keep a known destination available, but creation and unknown destinations still 
 redirects and the API was killed before database recovery. All 100 events were eventually stored
 after restart; reclaiming pending stream entries took about 61 seconds. That sample demonstrates
 replay from the surviving stream. Its scope doesn't include a simultaneous Redis or host crash.
-The [fault-check results](benchmarks/2026-09-29-local/fault-checks.json) also record
+The [fault-check results](k6-benchmarks/2026-09-29-local/fault-checks.json) also record
 a graceful-shutdown sample.
 
 **Redis outage and replica failure.** A separate two-instance rehearsal included a 15-second
@@ -375,7 +376,7 @@ background. The cache also discards an older in-flight fill after invalidation. 
 Redis takedown check, both APIs stopped resolving the link within about 0.13 seconds. Propagation
 during a Redis failure still depends on retries and cache expiry.
 
-The [two-instance rehearsal](benchmarks/2026-09-29-local/two-instance-rehearsal.md)
+The [two-instance rehearsal](k6-benchmarks/2026-09-29-local/two-instance-rehearsal.md)
 records the topology and fault timeline. It used direct requests with client-side failover;
 a real load balancer remains part of deployment testing.
 
@@ -420,7 +421,7 @@ are approximate; the script now times the warm-up from the scenario start.
 These numbers are an upper bound for real visitors. k6 kept its connections open, but a visitor
 arriving from a shared link usually performs a fresh TLS handshake, which costs Traefik more. Every
 request hit one cached link, and the load generator competed with the service for CPU. The
-[production results](benchmarks/2026-10-12-production/) include both passes, the CPU samples, and the
+[production results](k6-benchmarks/2026-10-12-production/) include both passes, the CPU samples, and the
 scripts.
 
 ## What comes next
