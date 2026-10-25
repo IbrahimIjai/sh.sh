@@ -40,6 +40,8 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/myapp?sslmode=disable
       REDIS_URL: redis://redis:6379/0
       BASE_URL: http://localhost:8080
+      # Internal listener; Prometheus reaches it over the compose network.
+      METRICS_ADDR: ":9090"
     ports:
       - "8080:8080"
     depends_on:
@@ -48,6 +50,18 @@ services:
       redis:
         condition: service_healthy
 
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheusdata:/prometheus
+    depends_on:
+      - api
+
 volumes:
   pgdata:
   redisdata:
+  prometheusdata:

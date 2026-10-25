@@ -132,19 +132,27 @@ elsewhere, magic links are logged instead of emailed.
 
 ### Run everything in Docker
 
-Builds the API image and starts it alongside Postgres (the API container reads `.env` via
-`env_file` and overrides `DATABASE_URL` to use the `db` service hostname):
+Builds the API image and starts it alongside Postgres, Redis, and Prometheus (the API container
+reads `.env` via `env_file` and overrides connection URLs to use the Compose service hostnames):
 
 ```sh
 docker compose up --build
 ```
+
+Prometheus is available at <http://localhost:9090>. Its configuration lives in
+[`prometheus/prometheus.yml`](prometheus/prometheus.yml) and scrapes the API's internal
+`api:9090/metrics` endpoint every 15 seconds, plus Prometheus itself. Compose sets
+`METRICS_ADDR=:9090` for the API without publishing that listener to the host; the Prometheus
+UI is bound to host loopback only. Metrics persist in the `prometheusdata` volume.
+Check <http://localhost:9090/targets> or query `up{job="api"}` (expected value: `1`).
+After editing the scrape configuration, run `docker compose restart prometheus`.
 
 Useful extras:
 
 ```sh
 docker compose logs -f api     # tail API logs
 docker compose down            # stop containers
-docker compose down -v         # stop and wipe the Postgres volume
+docker compose down -v         # stop and wipe Postgres, Redis, and Prometheus volumes
 ```
 
 ## API
