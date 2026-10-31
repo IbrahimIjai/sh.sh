@@ -10,7 +10,19 @@ failure tests.
 [Web app](https://app.shortened.cv) · [Short-link domain](https://shortened.cv) ·
 [Technical write-up](WRITEUP.md) · [Benchmark evidence](k6-benchmarks/README.md)
 
-## Features
+## Motivation
+
+A short link has a small job: get someone to the right destination. The service behind it has more
+to keep track of. It must allocate a unique address, resolve it quickly, respect deletions, record
+visits, and make those visits useful to the person who shared the link.
+
+shortened.cv works through those problems in code. It uses the workload from
+[Andreyka26's URL-shortener system design](https://andreyka26.com/url-shortener-bitly-system-design-with-microsoft-engineer)
+as a target and measures how far one API, one Redis, and one PostgreSQL get on modest hardware.
+The goals were a redirect p99 under 50 ms and a reporting p95 under 500 ms during redirect traffic.
+Analytics may arrive asynchronously, and a deleted slug never points to someone else's destination.
+
+### Features
 
 - **Instant shortening:** create links without an account; claim anonymous links after signing in.
 - **Accounts and link management:** email magic links, optional Google OAuth, saved links, search,
@@ -28,7 +40,7 @@ failure tests.
 - **Operations and safety:** anonymous rate limits, cross-instance cache invalidation, admin
   takedowns, optional Google Web Risk checks, health endpoints, and Prometheus metrics.
 
-## Architecture
+### Architecture
 
 ```
                        ┌── L1: Go in-memory LRU
@@ -60,12 +72,12 @@ visitors are approximated with a keyed hash that rotates daily.
 
 For the design decisions and failure handling, read [Building shortened.cv](WRITEUP.md).
 
-## Benchmarks
+### Benchmarks
 
 The repository includes the [test harnesses, environment manifests, and recorded results](k6-benchmarks/README.md).
 These are short synthetic measurements, not availability or maximum-capacity guarantees.
 
-### Local mixed workload · September 29, 2026
+#### Local mixed workload · September 29, 2026
 
 One Go API instance, PostgreSQL 17, Redis 7.2, and k6 on the same 16 GB laptop. The API container
 was limited to 2 CPUs and 512 MiB, PostgreSQL to 2 CPUs and 1 GiB, and Redis to 0.5 CPU and
@@ -84,7 +96,7 @@ requests, and all 6,001 created links were accounted for. Results:
 [load data](k6-benchmarks/2026-09-29-local/load-results.json) and
 [environment](k6-benchmarks/2026-09-29-local/environment.json).
 
-### Live VPS through HTTPS and Traefik · October 12, 2026
+#### Live VPS through HTTPS and Traefik · October 12, 2026
 
 The deployment runs on a 4 vCPU, 7.8 GiB Contabo VPS shared with other applications. k6 ran on the
 same VPS. Each step ramped for 20 seconds, then aimed to hold the target rate for 60 seconds. Every
@@ -103,40 +115,7 @@ now times the warm-up from the scenario start. Click persistence was not reconci
 See the [results and caveats](k6-benchmarks/README.md) and the
 [k6 summaries](k6-benchmarks/2026-10-12-production/run2-1000-to-3000/).
 
-## Run the k6 tests
-
-Docker Compose provides a separate test database, Redis, and API. From the repository root:
-
-```sh
-cd server/k6
-docker compose up -d --build --wait
-docker compose exec -T db psql -U postgres -d k6 < seed.sql
-docker compose run --rm k6 run smoke.js
-docker compose run --rm k6 run mixed.js
-```
-
-Choose `health.js`, `redirects.js`, `create.js`, `stats.js`, or `mixed.js` for load tests.
-`smoke.js` checks API behavior; `clicks.js` verifies that a known number of visits are stored.
-
-```sh
-# 1,000 redirects/s for one minute
-docker compose run --rm -e RATE=1000 -e DURATION=1m k6 run redirects.js
-
-# Remove the test stack and its data when finished
-docker compose down -v
-```
-
-See the [k6 guide](server/k6/README.md) for settings, larger analytics datasets, recovery checks,
-and testing another deployment. [Recorded results](k6-benchmarks/README.md) include the exact
-conditions and limitations of earlier runs.
-
-![k6 summary for a 10,000 redirects/s target on one laptop](k6-benchmarks/2026-10-14-local-redirect/k6-10000.png)
-
-The October 14 run delivered about 9,800 redirects/s to one cached link on one laptop, with k6
-sharing the machine. All 698,171 clicks, including warm-up, were stored. See the
-[results and environment](k6-benchmarks/README.md#2026-10-14-local-one-link-no-limits).
-
-## Stack
+### Stack
 
 | Area | Technologies |
 |---|---|
@@ -148,7 +127,7 @@ sharing the machine. All 698,171 clicks, including warm-up, were stored. See the
 | Observability and testing | Prometheus, pprof, Go tests, k6 |
 | Deployment | Docker Compose, Coolify, Traefik |
 
-## Run locally
+## Quick Start
 
 Requirements: Go 1.26+, Bun, and Docker Compose. `sqlc` and the `goose` CLI are optional; the API
 applies its embedded migrations at startup by default.
@@ -194,7 +173,9 @@ curl -X POST http://localhost:8080/api/v1/links \
 
 The response includes `short_url` and, for anonymous links, a one-time `claim_token`.
 
-## API overview
+## Usage
+
+### API overview
 
 | Endpoint | Purpose |
 |---|---|
@@ -211,7 +192,56 @@ The response includes `short_url` and, for anonymous links, a one-time `claim_to
 The backend also has domain management, authentication, and optional admin takedown endpoints. See
 the [server documentation](server/README.md).
 
-## Tests
+### Run the k6 load tests
+
+Docker Compose provides a separate test database, Redis, and API. From the repository root:
+
+```sh
+cd server/k6
+docker compose up -d --build --wait
+docker compose exec -T db psql -U postgres -d k6 < seed.sql
+docker compose run --rm k6 run smoke.js
+docker compose run --rm k6 run mixed.js
+```
+
+Choose `health.js`, `redirects.js`, `create.js`, `stats.js`, or `mixed.js` for load tests.
+`smoke.js` checks API behavior; `clicks.js` verifies that a known number of visits are stored.
+
+```sh
+# 1,000 redirects/s for one minute
+docker compose run --rm -e RATE=1000 -e DURATION=1m k6 run redirects.js
+
+# Remove the test stack and its data when finished
+docker compose down -v
+```
+
+See the [k6 guide](server/k6/README.md) for settings, larger analytics datasets, recovery checks,
+and testing another deployment. [Recorded results](k6-benchmarks/README.md) include the exact
+conditions and limitations of earlier runs.
+
+![k6 summary for a 10,000 redirects/s target on one laptop](k6-benchmarks/2026-10-14-local-redirect/k6-10000.png)
+
+The October 14 run delivered about 9,800 redirects/s to one cached link on one laptop, with k6
+sharing the machine. All 698,171 clicks, including warm-up, were stored. See the
+[results and environment](k6-benchmarks/README.md#2026-10-14-local-one-link-no-limits).
+
+## Contributing
+
+Issues and pull requests are welcome. For larger changes, open an issue first to discuss the
+approach. Keep each pull request focused, and run the tests below before submitting.
+
+### Repository layout
+
+```
+sh.sh/
+├── server/         Go API, queries, migrations, tests, k6 load tests
+├── ui/             Nuxt frontend and analytics dashboard
+├── k6-benchmarks/  Published local and live-VPS results
+├── WRITEUP.md      Architecture and engineering notes
+└── README.md
+```
+
+### Run the tests
 
 ```sh
 # Backend unit tests (from server/)
@@ -228,18 +258,7 @@ docker compose -f server/k6/compose.yml run --rm k6 run smoke.js
 PostgreSQL and Redis integration tests are covered in the [server README](server/README.md).
 API behavior and load tests are documented in the [k6 guide](server/k6/README.md).
 
-## Repository layout
-
-```
-sh.sh/
-├── server/         Go API, queries, migrations, tests, k6 load tests
-├── ui/             Nuxt frontend and analytics dashboard
-├── k6-benchmarks/  Published local and live-VPS results
-├── WRITEUP.md      Architecture and engineering notes
-└── README.md
-```
-
-## Deploying
+### Deploying
 
 For an internet-facing deployment, set `APP_ENV=production` (secure auth cookies, no development
 CLI), trusted proxy settings, email delivery, TLS, fresh secrets, monitoring, and a tested backup
